@@ -7,12 +7,18 @@
             "alias": "provider2"
         }
     },
+    "locals": {
+        "common_labels": {
+            "owner": "${var.owner}",
+            "skip_deletion": "${var.skip_deletion}"
+        }
+    },
     "module": {
         "network-vpc-2": {
             "source": "../../../../../modules/gcp/gke/network",
             "name": "${var.deployment_name}-${var.env2}",
             "region": "${var.region_2_name}",
-            "resource_tags" : {},
+            "resource_tags": "${local.common_labels}",
             "primary_subnet": "${var.primary_subnet_2}",
             "providers": {
                 "google": "google.provider2"
@@ -24,7 +30,7 @@
             "location": "${var.zone_2_name}",
             "worker_count": "${var.cluster_size}",
             "machine_type": "${var.machine_type}",
-            "resource_tags" : {},
+            "resource_tags": "${local.common_labels}",
             "vpc": "${module.network-vpc-2.vpc}",
             "subnet": "${module.network-vpc-2.subnet}",
             "providers": {

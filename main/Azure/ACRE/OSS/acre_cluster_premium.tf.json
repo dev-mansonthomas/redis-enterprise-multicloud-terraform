@@ -8,22 +8,30 @@
             "client_secret": "${var.azure_secret_key}"
         }
     },
+    "locals": {
+        "common_tags": {
+            "owner": "${var.owner}",
+            "skip_deletion": "${var.skip_deletion}"
+        }
+    },
     "module": {
-        "resource-group":{
+        "resource-group": {
             "source": "../../../../modules/azure/rg",
             "name": "${var.deployment_name}-${var.env}",
-            "region": "${var.region_name}"
+            "region": "${var.region_name}",
+            "resource_tags": "${local.common_tags}"
         },
         "acre-redis": {
             "source": "../../../../modules/azure/acre-oss",
             "name": "${var.deployment_name}-${var.env}",
             "region": "${var.region_name}",
-            "resource_group" : "${module.resource-group.rg-name}",
+            "resource_group": "${module.resource-group.rg-name}",
             "capacity": "${var.capacity}",
-            "family": "${var.family}",            
-            "sku": "${var.sku}",               
-            "shard_count": "${var.shard_count}",       
-            "availability_zones": "${var.availability_zones}"
+            "family": "${var.family}",
+            "sku": "${var.sku}",
+            "shard_count": "${var.shard_count}",
+            "availability_zones": "${var.availability_zones}",
+            "resource_tags": "${local.common_tags}"
         }
     },
     "output": {

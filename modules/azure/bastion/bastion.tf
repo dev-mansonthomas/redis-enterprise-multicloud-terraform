@@ -17,9 +17,9 @@ resource "azurerm_public_ip" "client-public-ip" {
     sku                          = "Standard"
     zones                        = [var.availability_zone]
 
-    tags = {
+    tags = merge(var.resource_tags, {
         environment = "${var.name}"
-    }
+    })
 }
 
 # Create network interface for client node
@@ -35,9 +35,9 @@ resource "azurerm_network_interface" "client-nic" {
         public_ip_address_id          = azurerm_public_ip.client-public-ip.id
     }
 
-    tags = {
+    tags = merge(var.resource_tags, {
         environment = "${var.name}"
-    }
+    })
 }
 
 # Generate random text for a unique storage account name
@@ -58,9 +58,9 @@ resource "azurerm_storage_account" "mystorageaccount" {
     account_tier                = "Standard"
     account_replication_type    = "LRS"
 
-    tags = {
+    tags = merge(var.resource_tags, {
         environment = "${var.name}"
-    }
+    })
 }
 
 # Create client node
@@ -334,7 +334,7 @@ resource "azurerm_linux_virtual_machine" "client" {
         storage_account_uri = azurerm_storage_account.mystorageaccount.primary_blob_endpoint
     }
 
-    tags = {
+    tags = merge(var.resource_tags, {
         environment = "${var.name}"
-    }
+    })
 }

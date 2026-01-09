@@ -14,6 +14,7 @@ resource "google_compute_instance" "bastion" {
   name         = "${var.name}-bastion"
   machine_type = var.machine_type
   zone         = var.availability_zone
+  labels       = var.resource_tags
 
   #can_ip_forward  = true
 

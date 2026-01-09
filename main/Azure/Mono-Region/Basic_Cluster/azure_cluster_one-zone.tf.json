@@ -8,8 +8,14 @@
             "client_secret": "${var.azure_secret_key}"
         }
     },
+    "locals": {
+        "common_tags": {
+            "owner": "${var.owner}",
+            "skip_deletion": "${var.skip_deletion}"
+        }
+    },
     "module": {
-        "resource-group":{
+        "resource-group": {
             "source": "../../../../modules/azure/rg",
             "name": "${var.deployment_name}-${var.env}",
             "region": "${var.region_name}"
@@ -19,8 +25,8 @@
             "name": "${var.deployment_name}-${var.env}",
             "vnet_cidr": "${var.vnet_cidr}",
             "region": "${var.region_name}",
-            "resource_tags" : {},
-            "resource_group" : "${module.resource-group.rg-name}",
+            "resource_tags": "${local.common_tags}",
+            "resource_group": "${module.resource-group.rg-name}",
             "subnets_cidrs": "${var.subnets}",
             "bastion_subnet_cidr": "${var.bastion_subnet}",
             "private_conf": "${var.private_conf}",
@@ -32,22 +38,22 @@
             "worker_count": "${var.cluster_size}",
             "machine_type": "${var.machine_type}",
             "machine_image": "${var.machine_image}",
-            "resource_tags" : {},
-            "resource_group" : "${module.resource-group.rg-name}",
+            "resource_tags": "${local.common_tags}",
+            "resource_group": "${module.resource-group.rg-name}",
             "ssh_user": "${var.ssh_user}",
             "ssh_public_key": "${var.ssh_public_key}",
             "security_groups": "${module.network-vnet.security-groups}",
             "availability_zones": "${keys(var.subnets)}",
-            "rack_aware" : "${var.rack_aware}",
+            "rack_aware": "${var.rack_aware}",
             "region": "${var.region_name}",
             "subnets": "${module.network-vnet.subnets}",
             "private_conf": "${var.private_conf}",
-            "cluster_dns" : "cluster.${var.env}-${var.deployment_name}.${var.hosted_zone}",
-            "redis_distro" : "${var.rs_release}",
-            "boot_disk_size" : "${var.volume_size}",
-            "boot_disk_type" : "${var.volume_type}",
-            "redis_user" : "${var.rs_user}",
-            "redis_password" : "${var.rs_password}"
+            "cluster_dns": "cluster.${var.env}-${var.deployment_name}.${var.hosted_zone}",
+            "redis_distro": "${var.rs_release}",
+            "boot_disk_size": "${var.volume_size}",
+            "boot_disk_type": "${var.volume_type}",
+            "redis_user": "${var.rs_user}",
+            "redis_password": "${var.rs_password}"
         },
         "rs-client": {
             "source": "../../../../modules/azure/bastion",
@@ -62,10 +68,10 @@
             "redis_insight_package": "${var.redis_insight_package}",
             "promethus_package": "${var.promethus_package}",
             "cluster_dns": "${module.rs-cluster-dns.cluster_dns}",
-            "boot_disk_size" : "${var.volume_size}",
-            "boot_disk_type" : "${var.volume_type}",
-            "resource_tags" : {},
-            "resource_group" : "${module.resource-group.rg-name}",
+            "boot_disk_size": "${var.volume_size}",
+            "boot_disk_type": "${var.volume_type}",
+            "resource_tags": "${local.common_tags}",
+            "resource_group": "${module.resource-group.rg-name}",
             "ssh_user": "${var.ssh_user}",
             "ssh_public_key": "${var.ssh_public_key}",
             "region": "${var.region_name}"
@@ -74,9 +80,9 @@
             "source": "../../../../modules/azure/ns-public",
             "subdomain": "${var.env}-${var.deployment_name}",
             "hosted_zone": "${var.hosted_zone}",
-            "resource_tags": {},
-            "resource_group" : "${module.resource-group.rg-name}",
-            "ip_addresses": "${module.rs-cluster.re-public-ips}"  
+            "resource_tags": "${local.common_tags}",
+            "resource_group": "${module.resource-group.rg-name}",
+            "ip_addresses": "${module.rs-cluster.re-public-ips}"
         }
     },
     "output": {
@@ -102,8 +108,10 @@
             "value": "${module.rs-cluster-dns.A-records}"
         },
         "rs-cluster-ui-dns": {
-            "value": ["https://${module.rs-cluster-dns.cluster_master_dns}:8443",
-                  "https://${module.rs-cluster-dns.cluster_dns}:8443"]
+            "value": [
+                "https://${module.rs-cluster-dns.cluster_master_dns}:8443",
+                "https://${module.rs-cluster-dns.cluster_dns}:8443"
+            ]
         }
     }
 }

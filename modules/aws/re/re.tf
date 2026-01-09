@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 3.0"
+      version = "~> 5.0"
     }
   }
 }
@@ -52,114 +52,184 @@ resource "aws_instance" "node" {
     delete_on_termination = true
   }
 
-  user_data = <<-EOF
-  #! /bin/bash
-  echo "$(date) - CREATING SSH key" >> /home/${var.ssh_user}/install_redis.log
-  sudo -u ${var.ssh_user} bash -c 'echo "${file(var.ssh_public_key)}" >> ~/.ssh/authorized_keys'
+  user_data = <<-USERDATA
+#!/bin/bash
+set -x  # Debug mode - log all commands
+exec > >(tee /var/log/user-data.log) 2>&1
 
-  echo "$(date) - PREPARING machine node" >> /home/${var.ssh_user}/install_redis.log
-  apt-get -y update
-  apt-get -y install vim
-  apt-get -y install iotop
-  apt-get -y install iputils-ping
+echo "$(date) - Starting user_data script"
 
-  apt-get install -y netcat
-  apt-get install -y dnsutils
-  export DEBIAN_FRONTEND=noninteractive
-  export TZ="UTC"
-  apt-get install -y tzdata
-  ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime
-  dpkg-reconfigure --frontend noninteractive tzdata
+# Wait for cloud-init to create the user
+while [ ! -d /home/${var.ssh_user} ]; do
+  echo "Waiting for /home/${var.ssh_user} to be created..."
+  sleep 5
+done
 
-  # cloud instance have no swap anyway
-  #swapoff -a
-  #sed -i.bak '/ swap / s/^(.*)$/#1/g' /etc/fstab
-  echo 'DNSStubListener=no' | tee -a /etc/systemd/resolved.conf
-  mv /etc/resolv.conf /etc/resolv.conf.orig
-  ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
-  service systemd-resolved restart
-  sysctl -w net.ipv4.ip_local_port_range="40000 65535"
-  echo "net.ipv4.ip_local_port_range = 40000 65535" >> /etc/sysctl.conf
+echo "$(date) - CREATING SSH key" >> /home/${var.ssh_user}/install_redis.log
+sudo -u ${var.ssh_user} bash -c 'echo "${file(var.ssh_public_key)}" >> ~/.ssh/authorized_keys'
 
-  echo "$(date) - PREPARE done" >> /home/${var.ssh_user}/install_redis.log
+echo "$(date) - PREPARING machine node" >> /home/${var.ssh_user}/install_redis.log
+apt-get -y update
+apt-get -y install vim iotop iputils-ping curl jq netcat dnsutils
 
-  ################
-  # RS
+# --- Configure umask for root & ubuntu ---
+echo "umask 0022" | tee -a /root/.profile > /dev/null
+echo "umask 0022" >> ~/.profile
+umask 0022
 
-  echo "$(date) - INSTALLING Redis Enterprise" >> /home/${var.ssh_user}/install_redis.log
+export DEBIAN_FRONTEND=noninteractive
+export TZ="UTC"
+apt-get install -y tzdata
+ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime
+dpkg-reconfigure --frontend noninteractive tzdata
 
-  mkdir /home/${var.ssh_user}/install
+# cloud instance have no swap anyway
+#swapoff -a
+#sed -i.bak '/ swap / s/^(.*)$/#1/g' /etc/fstab
+echo 'DNSStubListener=no' | tee -a /etc/systemd/resolved.conf
+mv /etc/resolv.conf /etc/resolv.conf.orig
+ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
+service systemd-resolved restart
+sysctl -w net.ipv4.ip_local_port_range="40000 65535"
+echo "net.ipv4.ip_local_port_range = 40000 65535" >> /etc/sysctl.conf
 
-  echo "$(date) - DOWNLOADING Redis Enterprise from : " ${var.redis_distro} >> /home/${var.ssh_user}/install_redis.log
-  wget "${var.redis_distro}" -P /home/${var.ssh_user}/install
-  tar xvf /home/${var.ssh_user}/install/redislabs*.tar -C /home/${var.ssh_user}/install
+echo "$(date) - PREPARE done" >> /home/${var.ssh_user}/install_redis.log
 
-  echo "$(date) - INSTALLING Redis Enterprise - silent installation" >> /home/${var.ssh_user}/install_redis.log
+################
+# RS
 
-  cd /home/${var.ssh_user}/install
-  sudo /home/${var.ssh_user}/install/install.sh -y 2>&1 >> /home/${var.ssh_user}/install_rs.log
-  sudo adduser ${var.ssh_user} redislabs
+echo "$(date) - INSTALLING Redis Enterprise" >> /home/${var.ssh_user}/install_redis.log
 
-  echo "$(date) - INSTALL done" >> /home/${var.ssh_user}/install_redis.log
+mkdir -p /home/${var.ssh_user}/install
 
-  ################
-  # NODE
+echo "$(date) - DOWNLOADING Redis Enterprise from : ${var.redis_distro}" >> /home/${var.ssh_user}/install_redis.log
+wget "${var.redis_distro}" -P /home/${var.ssh_user}/install
+tar xvf /home/${var.ssh_user}/install/redislabs*.tar -C /home/${var.ssh_user}/install
 
-  node_external_addr=`curl ifconfig.me/ip`
-  echo "Node ${count.index + 1} : $node_external_addr" >> /home/${var.ssh_user}/install_redis.log
-  rack_aware=${var.rack_aware}
-  private_conf=${var.private_conf}
+echo "$(date) - INSTALLING Redis Enterprise - silent installation" >> /home/${var.ssh_user}/install_redis.log
 
-  if [ ${count.index + 1} -eq 1 ]; then
-    echo "create cluster" >> /home/${var.ssh_user}/install_redis.log
-    command="/opt/redislabs/bin/rladmin cluster create name ${var.cluster_dns} username ${var.redis_user} password '${var.redis_password}' flash_enabled"
+# Prepare environment for clean installation
+export DEBIAN_FRONTEND=noninteractive
 
-    if $rack_aware ; then
-      command="$command rack_aware rack_id '${sort(var.availability_zones)[count.index % length(var.availability_zones)]}'"
-    fi
+# Create /etc/rc.local to avoid "sed: can't read /etc/rc.local" warning (Ubuntu 22.04+ doesn't have it)
+if [ ! -f /etc/rc.local ]; then
+  echo '#!/bin/bash' > /etc/rc.local
+  echo 'exit 0' >> /etc/rc.local
+  chmod +x /etc/rc.local
+fi
 
-    if ! $private_conf; then
-      command="$command external_addr $node_external_addr"
-    fi
-    echo "$command" >> /home/${var.ssh_user}/install_redis.log
-    sudo bash -c "$command 2>&1" >> /home/${var.ssh_user}/install_redis.log
-  else
-    echo "joining cluster " >> /home/${var.ssh_user}/install_redis.log
-    command="/opt/redislabs/bin/rladmin cluster join username ${var.redis_user} password '${var.redis_password}' nodes ${aws_network_interface.cluster_nic[0].private_ip} flash_enabled replace_node ${count.index + 1}"
-    
-    if $rack_aware ; then
-      command="$command rack_id '${sort(var.availability_zones)[count.index % length(var.availability_zones)]}'"
-    fi
+cd /home/${var.ssh_user}/install
+sudo -E /home/${var.ssh_user}/install/install.sh -y 2>&1 >> /home/${var.ssh_user}/install_rs.log
+sudo adduser ${var.ssh_user} redislabs
 
-    if ! $private_conf; then
-      command="$command external_addr $node_external_addr"
-    fi
+echo "$(date) - INSTALL done" >> /home/${var.ssh_user}/install_redis.log
 
-    echo "$command" >> /home/${var.ssh_user}/install_redis.log
-    until sudo bash -c "$command 2>&1" >> /home/${var.ssh_user}/install_redis.log ; do
-      echo "joining cluster, retrying in 60 seconds..." >> /home/${var.ssh_user}/install_redis.log
-      sleep 60
-    done   
+################
+# Wait for Redis Enterprise services to be ready
+echo "$(date) - Waiting for Redis Enterprise services to start..." >> /home/${var.ssh_user}/install_redis.log
+
+# Wait for supervisorctl to be available and services to be running
+max_wait=120
+waited=0
+while [ $waited -lt $max_wait ]; do
+  if sudo /opt/redislabs/bin/supervisorctl status 2>/dev/null | grep -q "RUNNING"; then
+    echo "$(date) - Redis Enterprise services are running" >> /home/${var.ssh_user}/install_redis.log
+    break
   fi
-  echo "$(date) - DONE creating cluster node" >> /home/${var.ssh_user}/install_redis.log
+  echo "Waiting for services... ($waited/$max_wait seconds)" >> /home/${var.ssh_user}/install_redis.log
+  sleep 5
+  waited=$((waited + 5))
+done
 
-  ################
-  # NODE external_addr - it runs at each reboot to update it
-  echo "${count.index + 1}" > /home/${var.ssh_user}/node_index.terraform
+# Additional wait to ensure all services are fully initialized
+sleep 10
+
+################
+# NODE
+
+node_external_addr=$(curl -s ifconfig.me/ip)
+echo "Node ${count.index + 1} : $node_external_addr" >> /home/${var.ssh_user}/install_redis.log
+rack_aware=${var.rack_aware}
+private_conf=${var.private_conf}
+
+if [ ${count.index + 1} -eq 1 ]; then
+  echo "$(date) - Creating cluster..." >> /home/${var.ssh_user}/install_redis.log
+  command="/opt/redislabs/bin/rladmin cluster create name ${var.cluster_dns} username ${var.redis_user} password '${var.redis_password}' flash_enabled"
+
+  if $rack_aware ; then
+    command="$command rack_aware rack_id '${sort(var.availability_zones)[count.index % length(var.availability_zones)]}'"
+  fi
+
   if ! $private_conf; then
-    cat <<EOF > /home/${var.ssh_user}/node_externaladdr.sh
-    #!/bin/bash
-      node_external_addr=\$(curl -s ifconfig.me/ip)
-      # Terraform node_id may not be Redis Enterprise node id
-      /opt/redislabs/bin/rladmin node ${count.index + 1} external_addr set \$node_external_addr
-      chown ${var.ssh_user} /home/${var.ssh_user}/node_externaladdr.sh
-      chmod u+x /home/${var.ssh_user}/node_externaladdr.sh
-      /home/${var.ssh_user}/node_externaladdr.sh
-
-      echo "$(date) - DONE updating RS external_addr" >> /home/${var.ssh_user}/install.log
-    Footer
+    command="$command external_addr $node_external_addr"
   fi
-  EOF
+  echo "Command: $command" >> /home/${var.ssh_user}/install_redis.log
+
+  # Execute and capture both stdout and stderr, also check exit code
+  if sudo bash -c "$command" >> /home/${var.ssh_user}/install_redis.log 2>&1; then
+    echo "$(date) - Cluster created successfully" >> /home/${var.ssh_user}/install_redis.log
+  else
+    echo "$(date) - ERROR: Cluster creation failed with exit code $?" >> /home/${var.ssh_user}/install_redis.log
+  fi
+else
+  echo "$(date) - Joining cluster..." >> /home/${var.ssh_user}/install_redis.log
+  command="/opt/redislabs/bin/rladmin cluster join username ${var.redis_user} password '${var.redis_password}' nodes ${aws_network_interface.cluster_nic[0].private_ip} flash_enabled replace_node ${count.index + 1}"
+
+  if $rack_aware ; then
+    command="$command rack_id '${sort(var.availability_zones)[count.index % length(var.availability_zones)]}'"
+  fi
+
+  if ! $private_conf; then
+    command="$command external_addr $node_external_addr"
+  fi
+
+  echo "Command: $command" >> /home/${var.ssh_user}/install_redis.log
+
+  # Retry loop for joining cluster (master node might not be ready yet)
+  max_retries=20
+  retry_count=0
+  while [ $retry_count -lt $max_retries ]; do
+    echo "$(date) - Join attempt $((retry_count + 1))/$max_retries" >> /home/${var.ssh_user}/install_redis.log
+    if sudo bash -c "$command" >> /home/${var.ssh_user}/install_redis.log 2>&1; then
+      echo "$(date) - Successfully joined cluster" >> /home/${var.ssh_user}/install_redis.log
+      break
+    else
+      echo "$(date) - Join failed, retrying in 30 seconds..." >> /home/${var.ssh_user}/install_redis.log
+      retry_count=$((retry_count + 1))
+      sleep 30
+    fi
+  done
+
+  if [ $retry_count -eq $max_retries ]; then
+    echo "$(date) - ERROR: Failed to join cluster after $max_retries attempts" >> /home/${var.ssh_user}/install_redis.log
+  fi
+fi
+echo "$(date) - DONE creating cluster node" >> /home/${var.ssh_user}/install_redis.log
+
+################
+# NODE external_addr - script for updating external_addr on reboot (for dynamic IPs)
+echo "${count.index + 1}" > /home/${var.ssh_user}/node_index.terraform
+if ! $private_conf; then
+  # Create script that reads node index from file and updates external_addr
+  cat > /home/${var.ssh_user}/node_externaladdr.sh << 'EXTERNALADDRSCRIPT'
+#!/bin/bash
+# This script updates the Redis Enterprise node's external address
+# Useful when cloud instances have dynamic public IPs
+
+node_external_addr=$(curl -s ifconfig.me/ip)
+node_index=$(cat /home/ubuntu/node_index.terraform 2>/dev/null || echo "1")
+
+echo "Updating node $node_index external_addr to $node_external_addr"
+/opt/redislabs/bin/rladmin node "$node_index" external_addr set "$node_external_addr" 2>&1 || true
+EXTERNALADDRSCRIPT
+  chown ${var.ssh_user}:${var.ssh_user} /home/${var.ssh_user}/node_externaladdr.sh
+  chmod u+x /home/${var.ssh_user}/node_externaladdr.sh
+  # Don't run it now - external_addr was already set during cluster create/join
+  echo "$(date) - Created node_externaladdr.sh script for future use" >> /home/${var.ssh_user}/install_redis.log
+fi
+
+echo "$(date) - user_data script completed"
+USERDATA
 
   tags = merge("${var.resource_tags}",{
     Name = "${var.name}-node-${count.index}"

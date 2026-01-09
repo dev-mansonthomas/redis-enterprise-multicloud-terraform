@@ -65,3 +65,17 @@ variable "env1" {
 variable "env2" {
   default = "us"
 }
+
+# ============================================
+# TAGGING CONFIGURATION
+# ============================================
+variable "owner" {
+  description = "Owner label for all resources (format: firstname_lastname)"
+  type        = string
+}
+
+variable "skip_deletion" {
+  description = "Skip deletion label for resources that should not be deleted"
+  type        = string
+  default     = "yes"
+}

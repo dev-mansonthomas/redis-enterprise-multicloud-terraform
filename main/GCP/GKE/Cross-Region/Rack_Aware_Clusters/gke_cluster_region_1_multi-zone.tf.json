@@ -7,12 +7,18 @@
             "alias": "provider1"
         }
     },
+    "locals": {
+        "common_labels": {
+            "owner": "${var.owner}",
+            "skip_deletion": "${var.skip_deletion}"
+        }
+    },
     "module": {
         "network-vpc-1": {
             "source": "../../../../../modules/gcp/gke/network",
             "name": "${var.deployment_name}-${var.env1}",
             "region": "${var.region_1_name}",
-            "resource_tags" : {},
+            "resource_tags": "${local.common_labels}",
             "primary_subnet": "${var.primary_subnet_1}",
             "providers": {
                 "google": "google.provider1"
@@ -24,7 +30,7 @@
             "location": "${var.region_1_name}",
             "worker_count": "${var.cluster_size}",
             "machine_type": "${var.machine_type}",
-            "resource_tags" : {},
+            "resource_tags": "${local.common_labels}",
             "vpc": "${module.network-vpc-1.vpc}",
             "subnet": "${module.network-vpc-1.subnet}",
             "providers": {
@@ -42,7 +48,7 @@
         "gke-cluster-1-name": {
             "value": "${module.gke-cluster-1.cluster.name}"
         },
-        "how_to_deploy_re-clusters" :{
+        "how_to_deploy_re-clusters": {
             "value": "./active-active_deployment.sh ${module.gke-cluster-1.cluster.name} ${var.region_1_name} ${var.namespace1} ${module.gke-cluster-2.cluster.name} ${var.region_2_name} ${var.namespace2}"
         }
     }

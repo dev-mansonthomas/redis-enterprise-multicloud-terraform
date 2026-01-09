@@ -11,6 +11,7 @@ resource "google_compute_instance" "cluster_master" {
   machine_type    = var.machine_type
   zone            = var.availability_zones[0]
   can_ip_forward  = true
+  labels          = var.resource_tags
 
   boot_disk {
     initialize_params {
@@ -69,6 +70,7 @@ resource "google_compute_instance" "nodes" {
   machine_type    = var.machine_type
   zone            = var.availability_zones[(count.index + 1) % length(var.availability_zones)]
   can_ip_forward  = true
+  labels          = var.resource_tags
 
   boot_disk {
     initialize_params {

@@ -15,9 +15,9 @@ resource "azurerm_virtual_network" "vnet" {
   location            = var.region
   resource_group_name = var.resource_group
 
-  tags = {
+  tags = merge(var.resource_tags, {
       environment = "Terraform VPC ${var.name}-vnet"
-  }
+  })
 }
 
 # Create public subnet
@@ -52,6 +52,7 @@ resource "azurerm_public_ip_prefix" "redis-public-prefix" {
   location            = var.region
   resource_group_name = var.resource_group
   prefix_length       = 30
+  tags                = var.resource_tags
 }
 
 resource "azurerm_nat_gateway" "redis-nat-gateway" {
@@ -61,6 +62,7 @@ resource "azurerm_nat_gateway" "redis-nat-gateway" {
   resource_group_name     = var.resource_group
   sku_name                = "Standard"
   idle_timeout_in_minutes = 10
+  tags                    = var.resource_tags
 }
 
 resource "azurerm_nat_gateway_public_ip_prefix_association" "public_ip_nat_association" {

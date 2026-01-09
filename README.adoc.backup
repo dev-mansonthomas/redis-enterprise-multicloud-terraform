@@ -27,21 +27,94 @@ The terraform state file is currently maintained locally. This means:
 
 == Prerequisites
 
-- Install https://learn.hashicorp.com/tutorials/terraform/install-cli[Terraform^]
+- Install https://learn.hashicorp.com/tutorials/terraform/install-cli[Terraform^] or https://opentofu.org/docs/intro/install/[OpenTofu^]
 - Create an SSH key file (~/.ssh/id_rsa)
+
+== Quick Start: Tagging and Credentials Setup
+
+[IMPORTANT]
+====
+All cloud resources must be tagged with:
+
+* `owner` - Your name in format `firstname_lastname` (e.g., `steve_jenner`)
+* `skip_deletion` - Set to `yes` for resources that should not be deleted
+====
+
+=== 1. Create your environment configuration
+
+[source,console]
+----
+cp .env.sample .env
+----
+
+=== 2. Edit `.env` file with your credentials and owner tag
+
+[source,bash]
+----
+# Required: Your owner tag
+OWNER=firstname_lastname
+
+# Optional: Skip deletion tag (defaults to "yes")
+SKIP_DELETION=yes
+
+# AWS Credentials (choose one method)
+AWS_CREDENTIALS_FILE=/path/to/aws/credentials.sh
+# OR
+AWS_ACCESS_KEY=your-aws-access-key
+AWS_SECRET_KEY=your-aws-secret-key
+
+# GCP Credentials
+GCP_CREDENTIALS_FILE=/path/to/gcp/credentials.json
+GCP_PROJECT_ID=your-gcp-project-id
+
+# Azure Credentials
+AZURE_SUBSCRIPTION_ID=your-subscription-id
+AZURE_TENANT_ID=your-tenant-id
+AZURE_CLIENT_ID=your-client-id
+AZURE_CLIENT_SECRET=your-client-secret
+----
+
+=== 3. Deploy infrastructure
+
+Navigate to any configuration directory and run:
+
+[source,console]
+----
+cd main/AWS/Mono-Region/Rack_Aware_Cluster
+./tofu_apply.sh
+----
+
+The script will automatically:
+
+* Detect the cloud provider (AWS, GCP, or Azure)
+* Load credentials from your `.env` file
+* Apply the configuration with the appropriate tags
+
+=== 4. Destroy infrastructure
+
+[source,console]
+----
+./tofu_destroy.sh
+----
+
+[TIP]
+====
+For detailed documentation on tagging and credentials management, see link:TAGGING_AND_CREDENTIALS.md[TAGGING_AND_CREDENTIALS.md]
+====
 
 
 === GCP setup
 
 - Download a https://cloud.google.com/iam/docs/creating-managing-service-account-keys[GCP service account key file^]
-- Save the file as terraform_account.json
+- Configure the credentials in your `.env` file (see Quick Start section above)
 
 === AWS setup
 
 - Download an https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html[AWS service account key file^]
-- In the file `variables.tf`, update the variables "aws_access_key" and "aws_secret_key" with the first and second entries of the AWS service account key file.
+- Configure the credentials in your `.env` file (see Quick Start section above)
 
 === Azure setup
+
 First of all, you need to create a service principal which has at least the "Contributor" role. You can use a service principal with a certificate or with secrets.
 If you have Azure CLI installed, you can execute the following command:
 
@@ -50,10 +123,10 @@ If you have Azure CLI installed, you can execute the following command:
 az ad sp create-for-rbac --name <service_principal_name> --role Contributor --scopes /subscriptions/<subscription_id>
 ----
 
-[IMPORTANT] 
-You might not be able to create a service principal for terraform if your Azure credentials are set to "contributor". If this is the case, the creation will fail with the error "The client 'XXX1234' with object id 'XXX1234' does not have authorization to perform action 'Microsoft.Authorization/roleAssignments/write' over scope '/subscriptions/ef03f41d-d2bd-4691-b3a0-3aff1c6711f7' or the scope is invalid." 
+[IMPORTANT]
+You might not be able to create a service principal for terraform if your Azure credentials are set to "contributor". If this is the case, the creation will fail with the error "The client 'XXX1234' with object id 'XXX1234' does not have authorization to perform action 'Microsoft.Authorization/roleAssignments/write' over scope '/subscriptions/ef03f41d-d2bd-4691-b3a0-3aff1c6711f7' or the scope is invalid."
 
-- Update the variables "azure_subscription_id", "azure_access_key_id" (application ID), "azure_tenant_id", and "azure_secret_key".
+- Configure the credentials in your `.env` file (see Quick Start section above)
 
 == Redis Enterprise - Architecture
 

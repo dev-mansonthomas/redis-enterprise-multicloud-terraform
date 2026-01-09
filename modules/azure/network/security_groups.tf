@@ -5,18 +5,18 @@ resource "azurerm_network_security_group" "allow-global" {
     name                = "${var.name}-nsg-allow-global"
     location            = var.region
     resource_group_name = var.resource_group
-    tags = {
+    tags = merge(var.resource_tags, {
         environment = "${var.name}"
-    }
+    })
 }
 
 resource "azurerm_network_security_group" "allow-local" {
     name                = "${var.name}-nsg-allow-local"
     location            = var.region
     resource_group_name = var.resource_group
-    tags = {
+    tags = merge(var.resource_tags, {
         environment = "${var.name}"
-    }
+    })
 }
 
 ### Security Group Rules for global traffic #####

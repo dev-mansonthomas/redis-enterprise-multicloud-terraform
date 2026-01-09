@@ -6,12 +6,18 @@
             "credentials": "${file(\"${var.credentials}\")}"
         }
     },
+    "locals": {
+        "common_labels": {
+            "owner": "${var.owner}",
+            "skip_deletion": "${var.skip_deletion}"
+        }
+    },
     "module": {
         "network-vpc": {
             "source": "../../../../../modules/gcp/gke/network",
             "name": "${var.deployment_name}-${var.env}",
             "region": "${var.region_name}",
-            "resource_tags" : {},
+            "resource_tags": "${local.common_labels}",
             "primary_subnet": "${var.primary_subnet}"
         },
         "gke-cluster": {
@@ -20,7 +26,7 @@
             "location": "${var.region_name}",
             "worker_count": "${var.cluster_size}",
             "machine_type": "${var.machine_type}",
-            "resource_tags" : {},
+            "resource_tags": "${local.common_labels}",
             "vpc": "${module.network-vpc.vpc}",
             "subnet": "${module.network-vpc.subnet}"
         }
@@ -29,7 +35,7 @@
         "gke-cluster-name": {
             "value": "${module.gke-cluster.cluster.name}"
         },
-        "how_to_deploy_re" :{
+        "how_to_deploy_re": {
             "value": "./config/re_deployment.sh ${module.gke-cluster.cluster.name} ${var.region_name} ${var.namespace}"
         }
     }

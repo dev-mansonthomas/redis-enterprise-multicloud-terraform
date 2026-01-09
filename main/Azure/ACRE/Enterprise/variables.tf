@@ -43,3 +43,17 @@ variable "port" {
   description = "The exposed port."
   default     = 12000
 }
+
+# ============================================
+# TAGGING CONFIGURATION
+# ============================================
+variable "owner" {
+  description = "Owner tag for all resources (format: firstname_lastname)"
+  type        = string
+}
+
+variable "skip_deletion" {
+  description = "Skip deletion tag for resources that should not be deleted"
+  type        = string
+  default     = "yes"
+}

@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 3.0"
+      version = "~> 5.0"
     }
   }
 }
@@ -126,8 +126,8 @@ resource "aws_route" "private-allipv4" {
 
 # Elastic IP for NAT Gateway
 resource "aws_eip" "eip-nat" {
-  count = var.private_conf ? 1 : 0
-  vpc   = true
+  count  = var.private_conf ? 1 : 0
+  domain = "vpc"
 
   tags = merge("${var.resource_tags}",{
     Name = "${var.name}-eip-nat"

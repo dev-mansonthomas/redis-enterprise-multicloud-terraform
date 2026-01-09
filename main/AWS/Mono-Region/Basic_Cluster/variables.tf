@@ -92,7 +92,8 @@ variable "cluster_size" {
 
 // other possible edits *************************************
 variable "rs_release" {
-  default = "https://s3.amazonaws.com/redis-enterprise-software-downloads/6.4.2/redislabs-6.4.2-81-focal-amd64.tar"
+  description = "Redis Enterprise download URL (set via REDIS_ENTERPRISE_URL in .env)"
+  type        = string
 }
 
 variable "machine_type" {
@@ -123,4 +124,18 @@ variable "rs_password" {
 // node3.cluster.<env>-<project_name>.demo-rlec.redislabs.com
 variable "hosted_zone" {
   default = "demo-rlec.redislabs.com"
+}
+
+# ============================================
+# TAGGING CONFIGURATION
+# ============================================
+variable "owner" {
+  description = "Owner tag for all resources (format: firstname_lastname)"
+  type        = string
+}
+
+variable "skip_deletion" {
+  description = "Skip deletion tag for resources that should not be deleted"
+  type        = string
+  default     = "yes"
 }

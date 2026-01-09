@@ -53,3 +53,17 @@ variable "shard_count" {
   description = "Only available when using the Premium SKU The number of Shards to create on the Redis Cluster."
   default     = 2
 }
+
+# ============================================
+# TAGGING CONFIGURATION
+# ============================================
+variable "owner" {
+  description = "Owner tag for all resources (format: firstname_lastname)"
+  type        = string
+}
+
+variable "skip_deletion" {
+  description = "Skip deletion tag for resources that should not be deleted"
+  type        = string
+  default     = "yes"
+}
