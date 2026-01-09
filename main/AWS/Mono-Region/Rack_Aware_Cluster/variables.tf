@@ -5,7 +5,7 @@ variable "deployment_name" {
 }
 
 variable "region_name" {
-  default = "us-east-1"
+  default = "eu-west-3"
 }
 
 variable "vpc_cidr" {
@@ -19,9 +19,9 @@ variable "rack_aware" {
 variable "subnets" {
   type = map
   default = {
-    us-east-1a = "10.1.1.0/24"
-    us-east-1b = "10.1.2.0/24"
-    us-east-1c = "10.1.3.0/24"
+    eu-west-3a = "10.1.1.0/24"
+    eu-west-3b = "10.1.2.0/24"
+    eu-west-3c = "10.1.3.0/24"
   }
 }
 
@@ -37,7 +37,7 @@ variable "client_enabled" {
 variable "bastion_subnet" {
   type = map
   default = {
-    us-east-1a = "10.1.4.0/24"
+    eu-west-3a = "10.1.4.0/24"
   }
 }
 
@@ -71,7 +71,7 @@ variable "aws_secret_key" {
 }
 
 variable "ssh_public_key" {
-  default = "~/.ssh/id_rsa.pub"
+  default = "~/.ssh/id_ed25519.pub"
 }
 
 variable "ssh_user" {
@@ -83,7 +83,7 @@ variable "volume_size" {
 }
 
 variable "volume_type" {
-  default = "gp3"
+  default = "gp2"
 }
 
 // other optional edits *************************************
@@ -94,7 +94,7 @@ variable "cluster_size" {
 
 // other possible edits *************************************
 variable "rs_release" {
-  default = "https://s3.amazonaws.com/redis-enterprise-software-downloads/6.2.10/redislabs-6.2.10-100-bionic-amd64.tar"
+  default = "https://s3.amazonaws.com/redis-enterprise-software-downloads/7.22.0/redislabs-7.22.0-216-jammy-amd64.tar"
 }
 
 variable "machine_type" {
@@ -102,20 +102,20 @@ variable "machine_type" {
 }
 
 variable "machine_image" {
-  // Ubuntu 20.04 LTS
-  default = "ami-0261755bbcb8c4a84"
-}
+  // Ubuntu 22.04 LTS
+  default = "ami-007c433663055a1cc"
+}// Ubuntu 20.04 LTS ami-0261755bbcb8c4a84
 
 variable "env" {
   default = "dev"
 }
 
 variable "rs_user" {
-  default = "admin@admin.com"
+  default = "adm@redis.io"
 }
 
 variable "rs_password" {
-  default = "admin"
+  default = "redis_adm"
 }
 
 // RS DNS and cluster will be
@@ -124,5 +124,5 @@ variable "rs_password" {
 // node2.cluster.<env>-<project_name>.demo-rlec.redislabs.com
 // node3.cluster.<env>-<project_name>.demo-rlec.redislabs.com
 variable "hosted_zone" {
-  default = "demo-rlec.redislabs.com"
+  default = "aws.paquerette.com"
 }
