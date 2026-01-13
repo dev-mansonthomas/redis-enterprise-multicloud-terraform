@@ -65,14 +65,22 @@ while [ ! -d /home/${var.ssh_user} ]; do
 done
 
 echo "$(date) - PREPARING client" >> /home/${var.ssh_user}/prepare_client.log
-apt-get -y update
-apt-get -y install vim
-apt-get -y install iotop
-apt-get -y install iputils-ping
 
-apt-get install -y netcat
-apt-get install -y dnsutils
+# Configure non-interactive mode for apt (suppress "Scanning processes..." output)
 export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+
+# Disable needrestart interactive prompts (Ubuntu 22.04+)
+if [ -d /etc/needrestart/conf.d ]; then
+    cat > /etc/needrestart/conf.d/99-disable-interactive.conf << 'NEEDRESTART_EOF'
+\$nrconf{restart} = 'a';
+\$nrconf{kernelhints} = 0;
+NEEDRESTART_EOF
+fi
+
+apt-get -y update
+apt-get -y install vim iotop iputils-ping netcat dnsutils
+
 export TZ="UTC"
 apt-get install -y tzdata
 ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime

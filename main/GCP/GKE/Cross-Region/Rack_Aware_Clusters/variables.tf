@@ -39,13 +39,13 @@ variable "primary_subnet_2" {
 variable "credentials_1" {
   description = "GCP credentials file"
   default = "terraform_account.json"
-  sensitive = true
+  # sensitive = true  # Commented for demo/POC transparency
 }
 
 variable "credentials_2" {
   description = "GCP credentials file"
   default = "terraform_account.json"
-  sensitive = true
+  # sensitive = true  # Commented for demo/POC transparency
 }
 
 // other optional edits *************************************

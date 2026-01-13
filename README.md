@@ -430,6 +430,21 @@ Protect resources from deletion:
 SKIP_DELETION=yes
 ```
 
+### Toggle Sensitive Output (Demo/POC Mode)
+
+By default, Terraform/OpenTofu hides sensitive values (like passwords) in logs. For demo or POC environments where transparency is more important than security, you can toggle this behavior:
+
+```bash
+# Check current mode
+./scripts/toggle_sensitive.sh status
+
+# Enable DEMO mode (show all logs, including sensitive values)
+./scripts/toggle_sensitive.sh show
+
+# Enable PRODUCTION mode (hide sensitive values in logs)
+./scripts/toggle_sensitive.sh hide
+```
+
 ### Client Machine Features
 
 If a client is added and enabled (the rs-client block added to the configuration file), a standalone machine will be created in the same VPC as the cluster containing:

@@ -20,21 +20,25 @@ variable "ssh_user" {
   type        = string
 }
 
-variable "ssh_public_key" {}
+variable "ssh_public_key" {
+  description = "Path to SSH public key"
+  type        = string
+}
+
+variable "ssh_private_key" {
+  description = "Path to SSH private key (for provisioners)"
+  type        = string
+}
 
 variable "boot_disk_size" {
   description = "Volume Size"
   type        = number
 }
 
-variable "rof_enabled" {
-  description = "Redis On Flash"
+variable "flash_enabled" {
+  description = "Enable Redis on Flash"
   type        = bool
-}
-
-variable "rdi_enabled" {
-  description = "Redis Data Integration"
-  type        = bool
+  default     = false
 }
 
 variable "name" {
@@ -65,7 +69,7 @@ variable "redis_user" {
 variable "redis_password" {
   description = "Redis Cluster Admin Password"
   type        = string
-  sensitive   = true
+  # sensitive = true  # Commented for demo/POC transparency
 }
 
 variable "availability_zones" {
@@ -80,4 +84,16 @@ variable "resource_tags" {
 variable "private_conf" {
   description = "Flag of private configuration"
   type        = bool
+}
+
+variable "local_ssd_count" {
+  description = "Number of local SSDs (375GB each) for RAID 0. GCP Local SSDs are fastest option for Redis on Flash."
+  type        = number
+  default     = 2
+}
+
+variable "boot_disk_type" {
+  description = "Boot disk type (pd-ssd, pd-balanced, pd-standard, pd-extreme)"
+  type        = string
+  default     = "pd-ssd"
 }

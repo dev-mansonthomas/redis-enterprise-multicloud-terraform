@@ -63,29 +63,47 @@ variable "redis_insight_package" {
 variable "credentials" {
   description = "GCP credentials file"
   default = "terraform_account.json"
-  sensitive = true
+  # sensitive = true  # Commented for demo/POC transparency
 }
 
 variable "ssh_public_key" {
   default = "~/.ssh/id_rsa.pub"
 }
 
+variable "ssh_private_key" {
+  description = "Path to SSH private key for provisioners"
+  default     = "~/.ssh/id_rsa"
+}
+
 variable "ssh_user" {
   default = "ubuntu"
 }
 
+variable "flash_enabled" {
+  description = "Enable Redis on Flash"
+  type        = bool
+  default     = false
+}
+
 variable "volume_size" {
-  default = 40
+  description = "Boot disk size in GB"
+  default     = 50
 }
 
-// Redis on Flash flag to fully create SSD NVMe disk
-variable "rof_enabled" {
-  default = false
+variable "volume_type" {
+  description = "Boot disk type: pd-ssd (default), pd-balanced, pd-extreme"
+  default     = "pd-ssd"
 }
 
-// Redis Data Integration 
-variable "rdi_enabled" {
-  default = true
+// ============================================================================
+// LOCAL SSD FOR REDIS ON FLASH (RAID 0)
+// GCP Local SSDs are 375GB each, attached directly to the host
+// Total flash storage = local_ssd_count * 375 GB
+// ============================================================================
+variable "local_ssd_count" {
+  description = "Number of local SSDs (375GB each) for RAID 0"
+  type        = number
+  default     = 2  # 750 GB total
 }
 
 // other optional edits *************************************
@@ -100,12 +118,25 @@ variable "rs_release" {
   type        = string
 }
 
+// ============================================================================
+// INSTANCE TYPE CONFIGURATION
+// ============================================================================
+// PERFORMANCE (Redis on Flash POC) - supports Local SSDs:
+//   - n2-standard-8   : 8 vCPU, 32 GB RAM (~$0.39/hr)
+//   - n2-standard-16  : 16 vCPU, 64 GB RAM (~$0.78/hr)
+//   - n2-highmem-8    : 8 vCPU, 64 GB RAM (~$0.52/hr) - more memory
+//   - c2-standard-8   : 8 vCPU, 32 GB RAM (~$0.42/hr) - compute optimized
+//
+// GENERAL PURPOSE (Demo/Dev) - NO Local SSD support:
+//   - e2-standard-4   : 4 vCPU, 16 GB RAM (~$0.13/hr)
+//   - e2-standard-8   : 8 vCPU, 32 GB RAM (~$0.27/hr)
+//
+// NOTE: E2 instances do NOT support Local SSDs!
+// ============================================================================
 variable "machine_type" {
-  default = "e2-standard-2"
-  // For Redis on Flash:
-  // You can create a VM instance with a maximum of 16 or 24 local SSD partitions for 6 TB or 9 TB of local SSD space, respectively, using N1, N2, and N2D machine types. Try this : "n2-highcpu-16"  // 16 vCPU 32 GB
-  // For C2, C2D, A2, M1, and M3 machine types, you can create a VM with a maximum of 8 local SSD partitions, for a total of 3 TB local SSD space.
-  // You can't attach Local SSDs to E2, Tau T2D, Tau T2A, and M2 machine types.
+  # Performance config: n2-standard-8 (supports Local SSDs for Flash)
+  default = "n2-standard-8"
+  # Demo config: "e2-standard-4" (no Local SSD support)
 }
 
 variable "machine_image" {

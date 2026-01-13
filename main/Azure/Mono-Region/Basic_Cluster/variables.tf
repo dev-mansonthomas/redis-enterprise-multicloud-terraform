@@ -79,16 +79,64 @@ variable "ssh_public_key" {
   default = "~/.ssh/id_rsa.pub"
 }
 
+variable "ssh_private_key" {
+  description = "Path to SSH private key for provisioners"
+  default     = "~/.ssh/id_rsa"
+}
+
 variable "ssh_user" {
   default = "ubuntu"
 }
 
+variable "flash_enabled" {
+  description = "Enable Redis on Flash"
+  type        = bool
+  default     = false
+}
+
 variable "volume_size" {
-  default = 40
+  description = "Boot disk size in GB"
+  default     = 50
 }
 
 variable "volume_type" {
+  # Boot disk type: Premium_LRS recommended for OS
   default = "Premium_LRS"
+}
+
+// ============================================================================
+// DATA DISKS FOR REDIS ON FLASH (RAID 0)
+// For Lsv3 instances with built-in NVMe, set data_disk_count = 0
+// Total flash storage = data_disk_count * data_disk_size
+// ============================================================================
+variable "data_disk_count" {
+  description = "Number of data disks for RAID 0 (0 = use built-in NVMe for Lsv3)"
+  type        = number
+  default     = 0  # Lsv3 has built-in NVMe
+}
+
+variable "data_disk_size" {
+  description = "Size in GB per data disk"
+  type        = number
+  default     = 512
+}
+
+variable "data_disk_type" {
+  description = "Disk type: PremiumV2_LRS (best perf), Premium_LRS, UltraSSD_LRS"
+  type        = string
+  default     = "PremiumV2_LRS"
+}
+
+variable "data_disk_iops" {
+  description = "Provisioned IOPS for PremiumV2/Ultra"
+  type        = number
+  default     = 80000
+}
+
+variable "data_disk_throughput" {
+  description = "Throughput MB/s for PremiumV2/Ultra"
+  type        = number
+  default     = 1200
 }
 
 // other optional edits *************************************
@@ -103,8 +151,23 @@ variable "rs_release" {
   type        = string
 }
 
+// ============================================================================
+// INSTANCE TYPE CONFIGURATION
+// ============================================================================
+// PERFORMANCE (Redis on Flash POC) - Storage Optimized with NVMe:
+//   - Standard_L8s_v3  : 8 vCPU, 64 GB RAM, 1x1.92 TB NVMe (~$0.62/hr)
+//   - Standard_L16s_v3 : 16 vCPU, 128 GB RAM, 2x1.92 TB NVMe (~$1.25/hr)
+//   - Standard_L32s_v3 : 32 vCPU, 256 GB RAM, 4x1.92 TB NVMe (~$2.49/hr)
+//
+// GENERAL PURPOSE (Demo/Dev):
+//   - Standard_D4s_v3  : 4 vCPU, 16 GB RAM (~$0.19/hr)
+//   - Standard_D8s_v3  : 8 vCPU, 32 GB RAM (~$0.38/hr)
+//   - Standard_E8s_v3  : 8 vCPU, 64 GB RAM (~$0.50/hr) - memory optimized
+// ============================================================================
 variable "machine_type" {
-  default = "Standard_D2s_v3"
+  # Performance config: Standard_L8s_v3 (storage optimized with NVMe)
+  default = "Standard_L8s_v3"
+  # Demo config: "Standard_D4s_v3" or "Standard_D8s_v3"
 }
 
 variable "machine_image" {

@@ -1,7 +1,7 @@
 output "re-nodes" {
   description = "The Redis Enterprise nodes"
   value       = azurerm_linux_virtual_machine.nodes
-  sensitive   = true
+  # sensitive = true  # Commented for demo/POC transparency
 }
 
 output "re-public-ips" {

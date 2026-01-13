@@ -68,6 +68,8 @@ credentials
 # Logs & Temporary files
 # =============================================================================
 *.log
+logs/
+**/logs/
 *.tmp
 *.temp
 *.bak

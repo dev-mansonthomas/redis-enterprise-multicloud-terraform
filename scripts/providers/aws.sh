@@ -67,7 +67,7 @@ load_aws_credentials() {
 build_aws_vars() {
     # Load credentials first
     load_aws_credentials || return 1
-    
+
     # Add AWS credentials
     VAR_ARGS="$VAR_ARGS -var=\"aws_access_key=$AWS_KEY\""
     VAR_ARGS="$VAR_ARGS -var=\"aws_secret_key=$AWS_SEC\""
@@ -88,7 +88,7 @@ build_aws_vars() {
     if [ -n "$AWS_HOSTED_ZONE" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"hosted_zone=$AWS_HOSTED_ZONE\""
     fi
-    
+
     export VAR_ARGS
     return 0
 }

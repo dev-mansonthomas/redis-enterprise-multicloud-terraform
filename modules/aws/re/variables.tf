@@ -38,6 +38,11 @@ variable "ssh_public_key" {
   type        = string
 }
 
+variable "ssh_private_key" {
+  description = "Path to SSH private key (for provisioners)"
+  type        = string
+}
+
 variable "ssh_user" {
   description = "SSH linux user"
   type        = string
@@ -62,7 +67,7 @@ variable "redis_user" {
 variable "redis_password" {
   description = "Redis Cluster Admin Password"
   type        = string
-  sensitive   = true
+  # sensitive = true  # Commented for demo/POC transparency
 }
 
 variable "cluster_dns" {
@@ -88,4 +93,10 @@ variable "boot_disk_type" {
 variable "private_conf" {
   description = "Flag of private configuration"
   type        = bool
+}
+
+variable "flash_enabled" {
+  description = "Enable Redis on Flash (requires i3/i4i instances with local NVMe)"
+  type        = bool
+  default     = false
 }

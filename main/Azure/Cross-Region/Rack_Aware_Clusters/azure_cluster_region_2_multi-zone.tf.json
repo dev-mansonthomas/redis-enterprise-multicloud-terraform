@@ -63,7 +63,9 @@
             "redis_password": "${var.rs_password}",
             "providers": {
                 "azurerm": "azurerm.provider2"
-            }
+            },
+            "ssh_private_key": "${var.ssh_private_key}",
+            "flash_enabled": "${var.flash_enabled}"
         },
         "rs-client-2": {
             "source": "../../../../modules/azure/bastion",
@@ -138,6 +140,14 @@
                 "https://${module.rs-cluster-2-dns.cluster_master_dns}:8443",
                 "https://${module.rs-cluster-2-dns.cluster_dns}:8443"
             ]
+        },
+        "ssh-connection-commands-2": {
+            "description": "SSH commands to connect to cluster 2 nodes",
+            "value": "${[for idx, ip in module.rs-cluster-2.re-public-ips : \"ssh -i ${replace(var.ssh_public_key, \".pub\", \"\")} ${var.ssh_user}@${ip}  # Cluster2 Node ${idx + 1}\"]}"
+        },
+        "ssh-bastion-command-2": {
+            "description": "SSH command to connect to the bastion/client node for cluster 2",
+            "value": "ssh -i ${replace(var.ssh_public_key, \".pub\", \"\")} ${var.ssh_user}@${module.rs-client-2.public-ip}"
         }
     }
 }

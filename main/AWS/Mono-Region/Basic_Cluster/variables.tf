@@ -72,15 +72,27 @@ variable "ssh_public_key" {
   default = "~/.ssh/id_rsa.pub"
 }
 
+variable "ssh_private_key" {
+  description = "Path to SSH private key for provisioners"
+  default     = "~/.ssh/id_rsa"
+}
+
 variable "ssh_user" {
   default = "ubuntu"
 }
 
+variable "flash_enabled" {
+  description = "Enable Redis on Flash"
+  type        = bool
+  default     = false
+}
+
 variable "volume_size" {
-  default = 200
+  default = 50
 }
 
 variable "volume_type" {
+  # Boot disk type: gp3 for general purpose, io2 for performance
   default = "gp3"
 }
 
@@ -96,8 +108,23 @@ variable "rs_release" {
   type        = string
 }
 
+// ============================================================================
+// INSTANCE TYPE CONFIGURATION
+// ============================================================================
+// PERFORMANCE (Redis on Flash POC):
+//   - i4i.2xlarge  : 8 vCPU, 64 GB RAM, 1x937 GB NVMe (~$0.69/hr)
+//   - i4i.4xlarge  : 16 vCPU, 128 GB RAM, 1x1875 GB NVMe (~$1.38/hr)
+//   - i4i.8xlarge  : 32 vCPU, 256 GB RAM, 2x1875 GB NVMe (~$2.75/hr)
+//
+// GENERAL PURPOSE (Demo/Dev):
+//   - t3.2xlarge   : 8 vCPU, 32 GB RAM (~$0.33/hr)
+//   - m6i.2xlarge  : 8 vCPU, 32 GB RAM (~$0.38/hr)
+//   - r6i.2xlarge  : 8 vCPU, 64 GB RAM (~$0.50/hr) - memory optimized
+// ============================================================================
 variable "machine_type" {
-  default = "t2.2xlarge"
+  # Performance config: i4i.2xlarge (storage optimized with NVMe)
+  default = "i4i.2xlarge"
+  # Demo config: "t3.2xlarge" or "m6i.2xlarge"
 }
 
 variable "machine_image" {

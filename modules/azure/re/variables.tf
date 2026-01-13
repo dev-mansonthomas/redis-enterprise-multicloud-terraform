@@ -38,10 +38,15 @@ variable "resource_group" {
   type        = string
 }
 
-variable "ssh_public_key"{
+variable "ssh_public_key" {
   description = "Path to SSH public key"
   type        = string
-} 
+}
+
+variable "ssh_private_key" {
+  description = "Path to SSH private key (for provisioners)"
+  type        = string
+}
 
 variable "ssh_user" {
   description = "SSH linux user"
@@ -70,7 +75,7 @@ variable "redis_user" {
 variable "redis_password" {
   description = "Redis Cluster Admin Password"
   type        = string
-  sensitive = true
+  # sensitive = true  # Commented for demo/POC transparency
 }
 
 variable "cluster_dns" {
@@ -96,4 +101,40 @@ variable "boot_disk_type" {
 variable "private_conf" {
   description = "Flag of private configuration"
   type        = bool
+}
+
+variable "flash_enabled" {
+  description = "Enable Redis on Flash"
+  type        = bool
+  default     = false
+}
+
+variable "data_disk_count" {
+  description = "Number of data disks for RAID 0. For Lsv3 instances, use 0 (they have NVMe built-in)."
+  type        = number
+  default     = 0
+}
+
+variable "data_disk_size" {
+  description = "Size in GB for each data disk (total RAID size = count * size)"
+  type        = number
+  default     = 512
+}
+
+variable "data_disk_type" {
+  description = "Managed disk type: Premium_LRS, PremiumV2_LRS (best perf), UltraSSD_LRS"
+  type        = string
+  default     = "PremiumV2_LRS"
+}
+
+variable "data_disk_iops" {
+  description = "Provisioned IOPS for PremiumV2 or Ultra disks"
+  type        = number
+  default     = 80000
+}
+
+variable "data_disk_throughput" {
+  description = "Throughput in MB/s for PremiumV2 or Ultra disks"
+  type        = number
+  default     = 1200
 }

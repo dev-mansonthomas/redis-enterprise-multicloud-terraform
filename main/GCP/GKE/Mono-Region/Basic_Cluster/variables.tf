@@ -27,7 +27,7 @@ variable "primary_subnet" {
 variable "credentials" {
   description = "GCP credentials file"
   default = "terraform_account.json"
-  sensitive = true
+  # sensitive = true  # Commented for demo/POC transparency
 }
 
 // other optional edits *************************************

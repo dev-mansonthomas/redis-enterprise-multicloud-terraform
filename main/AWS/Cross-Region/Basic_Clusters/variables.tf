@@ -78,8 +78,19 @@ variable "ssh_public_key" {
   default = "~/.ssh/id_rsa.pub"
 }
 
+variable "ssh_private_key" {
+  description = "Path to SSH private key for provisioners"
+  default     = "~/.ssh/id_rsa"
+}
+
 variable "ssh_user" {
   default = "ubuntu"
+}
+
+variable "flash_enabled" {
+  description = "Enable Redis on Flash"
+  type        = bool
+  default     = false
 }
 
 variable "volume_size" {

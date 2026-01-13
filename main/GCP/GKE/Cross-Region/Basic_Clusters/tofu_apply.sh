@@ -159,8 +159,11 @@ fi
 if [ -n "$CLUSTER_SIZE" ]; then
     VAR_ARGS="$VAR_ARGS -var=\"cluster_size=$CLUSTER_SIZE\""
 fi
-if [ -n "$VOLUME_SIZE" ]; then
-    VAR_ARGS="$VAR_ARGS -var=\"volume_size=$VOLUME_SIZE\""
+if [ -n "$ROOT_VOLUME_SIZE" ]; then
+    VAR_ARGS="$VAR_ARGS -var=\"volume_size=$ROOT_VOLUME_SIZE\""
+fi
+if [ -n "$FLASH_ENABLED" ]; then
+    VAR_ARGS="$VAR_ARGS -var=\"flash_enabled=$FLASH_ENABLED\""
 fi
 
 # Add cloud-specific credentials
@@ -290,9 +293,23 @@ echo "Deployment: ${DEPLOYMENT_NAME:-<not set>}"
 echo "Owner: $OWNER"
 echo "Skip Deletion: ${SKIP_DELETION:-yes}"
 echo "Redis Enterprise: $REDIS_ENTERPRISE_URL"
+echo "Flash Enabled: ${FLASH_ENABLED:-false}"
 echo "========================================="
 echo ""
 
+# Setup logging
+LOG_DIR="$SCRIPT_DIR/logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/apply_$(date +%Y%m%d_%H%M%S).log"
+echo "Full log will be saved to: $LOG_FILE"
+echo ""
+
 # Execute tofu apply with all variables
-eval "tofu apply $VAR_ARGS $AUTO_APPROVE_FLAG"
+eval "tofu apply $VAR_ARGS $AUTO_APPROVE_FLAG" 2>&1 | tee "$LOG_FILE" | grep -v -E '(^module\.[^(]+\(remote-exec\):.*%(\ \[|Working|Waiting|Get:|Fetched|Reading)|\(remote-exec\):.*kB/|^\s*$)' | grep -v -E '^\s+[0-9]+%'
+
+# Show completion message
+echo ""
+echo "========================================="
+echo "Log file saved to: $LOG_FILE"
+echo "========================================="
 

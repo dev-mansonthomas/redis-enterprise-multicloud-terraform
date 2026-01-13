@@ -165,19 +165,19 @@ build_redis_url() {
 # -----------------------------------------------------------------------------
 build_common_vars() {
     VAR_ARGS=""
-    
+
     # Add common tags
     VAR_ARGS="$VAR_ARGS -var=\"owner=$OWNER\""
     VAR_ARGS="$VAR_ARGS -var=\"skip_deletion=${SKIP_DELETION:-yes}\""
-    
+
     # Add Redis Enterprise URL
     VAR_ARGS="$VAR_ARGS -var=\"rs_release=$REDIS_ENTERPRISE_URL\""
-    
+
     # Add deployment name if set
     if [ -n "$DEPLOYMENT_NAME" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"deployment_name=$DEPLOYMENT_NAME\""
     fi
-    
+
     # Add common cluster configuration
     if [ -n "$SSH_PUBLIC_KEY" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"ssh_public_key=$SSH_PUBLIC_KEY\""
@@ -185,10 +185,15 @@ build_common_vars() {
     if [ -n "$CLUSTER_SIZE" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"cluster_size=$CLUSTER_SIZE\""
     fi
-    if [ -n "$VOLUME_SIZE" ]; then
-        VAR_ARGS="$VAR_ARGS -var=\"volume_size=$VOLUME_SIZE\""
+    if [ -n "$ROOT_VOLUME_SIZE" ]; then
+        VAR_ARGS="$VAR_ARGS -var=\"volume_size=$ROOT_VOLUME_SIZE\""
     fi
-    
+
+    # Add flash/storage configuration
+    if [ -n "$FLASH_ENABLED" ]; then
+        VAR_ARGS="$VAR_ARGS -var=\"flash_enabled=$FLASH_ENABLED\""
+    fi
+
     export VAR_ARGS
 }
 

@@ -92,8 +92,11 @@ fi
 if [ -n "$CLUSTER_SIZE" ]; then
     VAR_ARGS="$VAR_ARGS -var=\"cluster_size=$CLUSTER_SIZE\""
 fi
-if [ -n "$VOLUME_SIZE" ]; then
-    VAR_ARGS="$VAR_ARGS -var=\"volume_size=$VOLUME_SIZE\""
+if [ -n "$ROOT_VOLUME_SIZE" ]; then
+    VAR_ARGS="$VAR_ARGS -var=\"volume_size=$ROOT_VOLUME_SIZE\""
+fi
+if [ -n "$FLASH_ENABLED" ]; then
+    VAR_ARGS="$VAR_ARGS -var=\"flash_enabled=$FLASH_ENABLED\""
 fi
 
 # Add cloud-specific credentials

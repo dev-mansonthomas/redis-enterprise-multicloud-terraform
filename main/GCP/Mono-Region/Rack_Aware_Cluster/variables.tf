@@ -65,24 +65,30 @@ variable "redis_insight_package" {
 variable "credentials" {
   description = "GCP credentials file"
   default = "terraform_account.json"
-  sensitive = true
+  # sensitive = true  # Commented for demo/POC transparency
 }
 
 variable "ssh_public_key" {
   default = "~/.ssh/id_rsa.pub"
 }
 
+variable "ssh_private_key" {
+  description = "Path to SSH private key for provisioners"
+  default     = "~/.ssh/id_rsa"
+}
+
 variable "ssh_user" {
   default = "ubuntu"
 }
 
-variable "volume_size" {
-  default = 40
+variable "flash_enabled" {
+  description = "Enable Redis on Flash"
+  type        = bool
+  default     = false
 }
 
-// Redis on Flash flag to fully create SSD NVMe disk
-variable "rof_enabled" {
-  default = false
+variable "volume_size" {
+  default = 40
 }
 
 // other optional edits *************************************
