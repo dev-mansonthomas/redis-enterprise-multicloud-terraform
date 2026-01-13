@@ -113,6 +113,13 @@ variable "machine_type" {
   default = "t2.2xlarge"
 }
 
+variable "bastion_machine_type" {
+  description = "Instance type for bastion/client (memtier, Prometheus, Grafana)"
+  # Budget: c5.xlarge (4 vCPU, 8GB, 10 Gbps)
+  # Performance: c5n.xlarge (4 vCPU, 10.5GB, 25 Gbps)
+  default = "c5.xlarge"
+}
+
 variable "machine_image" {
   // Ubuntu 22.04 LTS
   default = "ami-007c433663055a1cc"
@@ -123,11 +130,13 @@ variable "env" {
 }
 
 variable "rs_user" {
-  default = "adm@redis.io"
+  description = "Redis Enterprise admin email (required - set REDIS_LOGIN in .env)"
+  type        = string
 }
 
 variable "rs_password" {
-  default = "redis_adm"
+  description = "Redis Enterprise admin password (required - set REDIS_PWD in .env)"
+  type        = string
 }
 
 // RS DNS and cluster will be

@@ -1,5 +1,13 @@
+#!/bin/bash
+# NOTE: Requires REDIS_LOGIN and REDIS_PWD environment variables from .env
+
 if [[ $# -eq 0 ]] ; then
     echo 'Mandatory arguments not supplied !'
+    exit 1
+fi
+
+if [[ -z "$REDIS_LOGIN" || -z "$REDIS_PWD" ]]; then
+    echo 'ERROR: REDIS_LOGIN and REDIS_PWD must be set (source .env)'
     exit 1
 fi
 
@@ -16,8 +24,8 @@ crdb-cli crdb create \
   --sharding true \
   --shards-count 2 \
   --encryption yes \
-  --instance fqdn=redis-cluster.$4.svc.cluster.local,url=https://api.$1,username=admin@admin.com,password=admin,replication_endpoint=mydb-db.$1:443,replication_tls_sni=mydb-db.$1 \
-  --instance fqdn=redis-cluster.$8.svc.cluster.local,url=https://api.$5,username=admin@admin.com,password=admin,replication_endpoint=mydb-db.$5:443,replication_tls_sni=mydb-db.$5
+  --instance fqdn=redis-cluster.$4.svc.cluster.local,url=https://api.$1,username=${REDIS_LOGIN},password=${REDIS_PWD},replication_endpoint=mydb-db.$1:443,replication_tls_sni=mydb-db.$1 \
+  --instance fqdn=redis-cluster.$8.svc.cluster.local,url=https://api.$5,username=${REDIS_LOGIN},password=${REDIS_PWD},replication_endpoint=mydb-db.$5:443,replication_tls_sni=mydb-db.$5
 
 rm -rf ~/.kube
 gcloud container clusters get-credentials $2 --zone $3

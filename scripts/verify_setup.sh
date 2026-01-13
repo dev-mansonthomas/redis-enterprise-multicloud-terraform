@@ -33,6 +33,21 @@ if [ -f ".env" ]; then
         ERRORS=$((ERRORS + 1))
     fi
 
+    # Check Redis Enterprise admin credentials
+    if [ -n "$REDIS_LOGIN" ]; then
+        echo "   ✓ REDIS_LOGIN is set: $REDIS_LOGIN"
+    else
+        echo "   ✗ REDIS_LOGIN is not set in .env"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    if [ -n "$REDIS_PWD" ]; then
+        echo "   ✓ REDIS_PWD is set"
+    else
+        echo "   ✗ REDIS_PWD is not set in .env"
+        ERRORS=$((ERRORS + 1))
+    fi
+
     # Check Redis download base URL
     if [ -n "$REDIS_DOWNLOAD_BASE_URL" ]; then
         echo "   ✓ REDIS_DOWNLOAD_BASE_URL is set"

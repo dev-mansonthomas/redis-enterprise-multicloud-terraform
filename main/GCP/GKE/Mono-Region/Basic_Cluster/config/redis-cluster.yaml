@@ -1,11 +1,12 @@
+# NOTE: Replace REDIS_LOGIN and REDIS_PWD with values from .env
 apiVersion: v1
 kind: Secret
 metadata:
   name: redis-cluster
 type: opaque
 stringData:
-  username: admin@admin.com
-  password: admin
+  username: ${REDIS_LOGIN}
+  password: ${REDIS_PWD}
 ---
 apiVersion: app.redislabs.com/v1
 kind: RedisEnterpriseCluster
@@ -18,6 +19,6 @@ spec:
   persistentSpec:
     enabled: true
   uiServiceType: LoadBalancer
-  username: admin@admin.com
+  username: ${REDIS_LOGIN}
   servicesRiggerSpec:
     databaseServiceType: load_balancer,cluster_ip,headless

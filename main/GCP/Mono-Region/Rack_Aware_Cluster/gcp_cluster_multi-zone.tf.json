@@ -109,7 +109,7 @@
         "dns-flush-commands": {
             "description": "Commands to flush DNS cache if cluster DNS is not resolving",
             "value": [
-                "# macOS:      sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder",
+                "# macOS:      sudo sh -c 'dscacheutil -flushcache; killall -HUP mDNSResponder'",
                 "# Linux:      sudo systemd-resolve --flush-caches  # or: sudo systemctl restart nscd",
                 "# Windows:    ipconfig /flushdns"
             ]

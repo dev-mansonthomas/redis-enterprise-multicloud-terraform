@@ -154,11 +154,13 @@ variable "env2" {
 }
 
 variable "rs_user" {
-  default = "admin@admin.com"
+  description = "Redis Enterprise admin email (required - set REDIS_LOGIN in .env)"
+  type        = string
 }
 
 variable "rs_password" {
-  default = "admin"
+  description = "Redis Enterprise admin password (required - set REDIS_PWD in .env)"
+  type        = string
 }
 
 // RS DNS and cluster will be

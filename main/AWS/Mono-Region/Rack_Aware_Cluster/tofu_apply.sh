@@ -147,6 +147,14 @@ VAR_ARGS="$VAR_ARGS -var=\"skip_deletion=${SKIP_DELETION:-yes}\""
 # Add Redis Enterprise URL
 VAR_ARGS="$VAR_ARGS -var=\"rs_release=$REDIS_ENTERPRISE_URL\""
 
+# Add Redis Enterprise admin credentials (required)
+if [ -z "$REDIS_LOGIN" ] || [ -z "$REDIS_PWD" ]; then
+    echo "Error: REDIS_LOGIN and REDIS_PWD must be set in .env file."
+    exit 1
+fi
+VAR_ARGS="$VAR_ARGS -var=\"rs_user=$REDIS_LOGIN\""
+VAR_ARGS="$VAR_ARGS -var=\"rs_password=$REDIS_PWD\""
+
 # Add deployment name if set
 if [ -n "$DEPLOYMENT_NAME" ]; then
     VAR_ARGS="$VAR_ARGS -var=\"deployment_name=$DEPLOYMENT_NAME\""

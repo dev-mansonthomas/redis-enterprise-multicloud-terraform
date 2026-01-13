@@ -82,6 +82,9 @@ build_aws_vars() {
     if [ -n "$AWS_MACHINE_TYPE" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"machine_type=$AWS_MACHINE_TYPE\""
     fi
+    if [ -n "$AWS_BASTION_MACHINE_TYPE" ]; then
+        VAR_ARGS="$VAR_ARGS -var=\"bastion_machine_type=$AWS_BASTION_MACHINE_TYPE\""
+    fi
     if [ -n "$AWS_MACHINE_IMAGE" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"machine_image=$AWS_MACHINE_IMAGE\""
     fi

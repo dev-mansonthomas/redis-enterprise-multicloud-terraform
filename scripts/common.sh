@@ -80,6 +80,17 @@ check_common_vars() {
     fi
     log_info "Owner: $OWNER"
 
+    # Check Redis Enterprise admin credentials (required)
+    if [ -z "$REDIS_LOGIN" ]; then
+        log_error "REDIS_LOGIN variable is not set. Please set it in .env file."
+        return 1
+    fi
+    if [ -z "$REDIS_PWD" ]; then
+        log_error "REDIS_PWD variable is not set. Please set it in .env file."
+        return 1
+    fi
+    log_info "Redis admin: $REDIS_LOGIN"
+
     # Validate DEPLOYMENT_NAME format for Redis Enterprise compatibility
     if [ -n "$DEPLOYMENT_NAME" ]; then
         if ! validate_deployment_name "$DEPLOYMENT_NAME"; then
@@ -91,7 +102,7 @@ check_common_vars() {
 }
 
 # -----------------------------------------------------------------------------
-# Check SSH public key file exists
+# Check SSH key files exist (public and private)
 # -----------------------------------------------------------------------------
 check_ssh_key() {
     if [ -n "$SSH_PUBLIC_KEY" ]; then
@@ -103,6 +114,16 @@ check_ssh_key() {
             return 1
         fi
         log_info "SSH public key: $SSH_PUBLIC_KEY"
+    fi
+    if [ -n "$SSH_PRIVATE_KEY" ]; then
+        # Expand tilde if present
+        local expanded_key="${SSH_PRIVATE_KEY/#\~/$HOME}"
+        if [ ! -f "$expanded_key" ]; then
+            log_error "SSH private key file not found: $SSH_PRIVATE_KEY"
+            echo "Please check SSH_PRIVATE_KEY in your .env file."
+            return 1
+        fi
+        log_info "SSH private key: $SSH_PRIVATE_KEY"
     fi
     return 0
 }
@@ -182,6 +203,9 @@ build_common_vars() {
     if [ -n "$SSH_PUBLIC_KEY" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"ssh_public_key=$SSH_PUBLIC_KEY\""
     fi
+    if [ -n "$SSH_PRIVATE_KEY" ]; then
+        VAR_ARGS="$VAR_ARGS -var=\"ssh_private_key=$SSH_PRIVATE_KEY\""
+    fi
     if [ -n "$CLUSTER_SIZE" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"cluster_size=$CLUSTER_SIZE\""
     fi
@@ -192,6 +216,14 @@ build_common_vars() {
     # Add flash/storage configuration
     if [ -n "$FLASH_ENABLED" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"flash_enabled=$FLASH_ENABLED\""
+    fi
+
+    # Add Redis Enterprise credentials
+    if [ -n "$REDIS_LOGIN" ]; then
+        VAR_ARGS="$VAR_ARGS -var=\"rs_user=$REDIS_LOGIN\""
+    fi
+    if [ -n "$REDIS_PWD" ]; then
+        VAR_ARGS="$VAR_ARGS -var=\"rs_password=$REDIS_PWD\""
     fi
 
     export VAR_ARGS

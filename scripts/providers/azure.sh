@@ -62,6 +62,9 @@ build_azure_vars() {
     if [ -n "$AZ_MACHINE_TYPE" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"machine_type=$AZ_MACHINE_TYPE\""
     fi
+    if [ -n "$AZ_BASTION_MACHINE_TYPE" ]; then
+        VAR_ARGS="$VAR_ARGS -var=\"bastion_machine_type=$AZ_BASTION_MACHINE_TYPE\""
+    fi
     if [ -n "$AZ_MACHINE_IMAGE" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"machine_image=$AZ_MACHINE_IMAGE\""
     fi

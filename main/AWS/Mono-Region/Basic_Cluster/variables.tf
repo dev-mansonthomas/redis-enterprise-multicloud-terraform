@@ -5,7 +5,7 @@ variable "deployment_name" {
 }
 
 variable "region_name" {
-  default = "us-east-1"
+  default = "eu-west-3"
 }
 
 variable "vpc_cidr" {
@@ -19,7 +19,7 @@ variable "rack_aware" {
 variable "subnets" {
   type = map
   default = {
-    us-east-1a = "10.1.1.0/24"
+    eu-west-3a = "10.1.1.0/24"
   }
 }
 
@@ -35,7 +35,7 @@ variable "client_enabled" {
 variable "bastion_subnet" {
   type = map
   default = {
-    us-east-1a = "10.1.4.0/24"
+    eu-west-3a = "10.1.4.0/24"
   }
 }
 
@@ -69,12 +69,12 @@ variable "aws_secret_key" {
 }
 
 variable "ssh_public_key" {
-  default = "~/.ssh/id_rsa.pub"
+  default = "~/.ssh/id_ed25519.pub"
 }
 
 variable "ssh_private_key" {
   description = "Path to SSH private key for provisioners"
-  default     = "~/.ssh/id_rsa"
+  default     = "~/.ssh/id_ed25519"
 }
 
 variable "ssh_user" {
@@ -127,6 +127,13 @@ variable "machine_type" {
   # Demo config: "t3.2xlarge" or "m6i.2xlarge"
 }
 
+variable "bastion_machine_type" {
+  description = "Instance type for bastion/client (memtier, Prometheus, Grafana)"
+  # Budget: c5.xlarge (4 vCPU, 8GB, 10 Gbps)
+  # Performance: c5n.xlarge (4 vCPU, 10.5GB, 25 Gbps)
+  default = "c5.xlarge"
+}
+
 variable "machine_image" {
   // Ubuntu 20.04 LTS
   default = "ami-0261755bbcb8c4a84"
@@ -137,11 +144,13 @@ variable "env" {
 }
 
 variable "rs_user" {
-  default = "admin@admin.com"
+  description = "Redis Enterprise admin email (required - set REDIS_LOGIN in .env)"
+  type        = string
 }
 
 variable "rs_password" {
-  default = "admin"
+  description = "Redis Enterprise admin password (required - set REDIS_PWD in .env)"
+  type        = string
 }
 
 // RS DNS and cluster will be

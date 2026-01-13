@@ -142,6 +142,11 @@ variable "machine_type" {
   default = "t2.2xlarge"
 }
 
+variable "bastion_machine_type" {
+  description = "Instance type for bastion/client (memtier, Prometheus, Grafana)"
+  default = "c5.xlarge"
+}
+
 variable "machine_image_region_1" {
   // Ubuntu 20.04 LTS
   default = "ami-0261755bbcb8c4a84"
@@ -161,11 +166,13 @@ variable "env2" {
 }
 
 variable "rs_user" {
-  default = "admin@admin.com"
+  description = "Redis Enterprise admin email (required - set REDIS_LOGIN in .env)"
+  type        = string
 }
 
 variable "rs_password" {
-  default = "admin"
+  description = "Redis Enterprise admin password (required - set REDIS_PWD in .env)"
+  type        = string
 }
 
 // RS DNS and cluster will be

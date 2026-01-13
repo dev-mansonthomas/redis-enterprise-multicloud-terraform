@@ -139,6 +139,13 @@ variable "machine_type" {
   # Demo config: "e2-standard-4" (no Local SSD support)
 }
 
+variable "bastion_machine_type" {
+  description = "Instance type for bastion/client (memtier, Prometheus, Grafana)"
+  # Budget: e2-standard-4 (4 vCPU, 16GB, 10 Gbps)
+  # Performance: c2-standard-4 (4 vCPU, 16GB, 32 Gbps)
+  default = "e2-standard-4"
+}
+
 variable "machine_image" {
   // Ubuntu 20.04 LTS
   default = "ubuntu-minimal-2004-lts"
@@ -149,11 +156,13 @@ variable "env" {
 }
 
 variable "rs_user" {
-  default = "admin@admin.com"
+  description = "Redis Enterprise admin email (required - set REDIS_LOGIN in .env)"
+  type        = string
 }
 
 variable "rs_password" {
-  default = "admin"
+  description = "Redis Enterprise admin password (required - set REDIS_PWD in .env)"
+  type        = string
 }
 
 // RS DNS and cluster will be

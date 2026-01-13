@@ -58,6 +58,9 @@ build_gcp_vars() {
     if [ -n "$GCP_MACHINE_TYPE" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"machine_type=$GCP_MACHINE_TYPE\""
     fi
+    if [ -n "$GCP_BASTION_MACHINE_TYPE" ]; then
+        VAR_ARGS="$VAR_ARGS -var=\"bastion_machine_type=$GCP_BASTION_MACHINE_TYPE\""
+    fi
     if [ -n "$GCP_MACHINE_IMAGE" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"machine_image=$GCP_MACHINE_IMAGE\""
     fi

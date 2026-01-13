@@ -54,6 +54,10 @@ Edit `.env` and configure the required variables:
 # Required: Your owner tag (format: firstname_lastname)
 OWNER=thomas_manson
 
+# Required: Redis Enterprise admin credentials
+REDIS_LOGIN=admin@yourdomain.com
+REDIS_PWD=your_secure_password
+
 # Required: Redis Enterprise download base URL
 # This is your private mirror or download source
 REDIS_DOWNLOAD_BASE_URL=https://your-private-mirror.com/redis-enterprise
@@ -126,7 +130,7 @@ Run the verification script to ensure everything is configured correctly:
 
 **What this script checks:**
 1. ✅ `.env.sample` exists
-2. ✅ `.env` file exists and has required variables (`OWNER`, `REDIS_OS`, `REDIS_ARCHITECTURE`)
+2. ✅ `.env` file exists and has required variables (`OWNER`, `REDIS_LOGIN`, `REDIS_PWD`, `REDIS_OS`, `REDIS_ARCHITECTURE`)
 3. ✅ `.env` is properly excluded in `.gitignore`
 4. ✅ All `variables.tf` files have `owner` and `skip_deletion` variables
 5. ✅ All `.tf.json` configuration files have `locals` block for tags
@@ -140,6 +144,8 @@ You should see:
 ```
 
 ### Step 3: Deploy Infrastructure
+
+> **⚠️ Important:** Always run deployment scripts from the **project root directory**. Do not run `tofu apply` or local scripts directly.
 
 #### Option A: Use the Interactive Menu (Recommended)
 
@@ -167,32 +173,18 @@ Run any of the quick deploy scripts from the project root:
 ./azure_acre_enterprise.sh --destroy
 ```
 
-#### Option C: Navigate to Configuration Directory
-
-Navigate to any configuration directory and deploy/destroy:
-
-```bash
-# Example: Deploy an AWS Rack-Aware Cluster
-cd main/AWS/Mono-Region/Rack_Aware_Cluster
-./tofu_apply.sh
-
-# Example: Destroy the cluster
-./tofu_destroy.sh
-```
-
-All methods will:
+All deployment scripts will:
 - ✅ Automatically detect the cloud provider (AWS, GCP, or Azure)
-- ✅ Load your credentials from `.env`
+- ✅ Load your credentials from `.env` (including `REDIS_LOGIN` and `REDIS_PWD`)
 - ✅ Tag all resources with `owner` and `skip_deletion`
-- ✅ Deploy the infrastructure
+- ✅ Deploy the infrastructure with the correct Redis admin credentials
 
 ### Destroy Infrastructure
 
-When you're done, you can destroy the infrastructure from the configuration directory:
+When you're done, destroy the infrastructure using the same script with `--destroy`:
 
 ```bash
-cd main/AWS/Mono-Region/Rack_Aware_Cluster
-./tofu_destroy.sh
+./aws_mono_region_rack_aware.sh --destroy
 ```
 
 ## Cloud Provider Setup
