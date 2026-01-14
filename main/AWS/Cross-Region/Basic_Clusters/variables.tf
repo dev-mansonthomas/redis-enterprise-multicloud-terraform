@@ -13,10 +13,9 @@ variable "vpc_1_cidr" {
 }
 
 variable "subnets_1" {
-  type = map
-  default = {
-    us-east-1a = "10.1.1.0/24"
-  }
+  description = "Subnet map for region 1 {az_name = cidr}. Leave empty for dynamic AZ discovery."
+  type    = map(string)
+  default = {}
 }
 
 variable "client_1_enabled" {
@@ -25,10 +24,9 @@ variable "client_1_enabled" {
 }
 
 variable "bastion_1_subnet" {
-  type = map
-  default = {
-    us-east-1a = "10.1.4.0/24"
-  }
+  description = "Bastion subnet map for region 1 {az_name = cidr}. Leave empty for dynamic AZ discovery."
+  type    = map(string)
+  default = {}
 }
 
 variable "region_2_name" {
@@ -40,10 +38,9 @@ variable "vpc_2_cidr" {
 }
 
 variable "subnets_2" {
-  type = map
-  default = {
-    us-west-1a = "10.2.1.0/24"
-  }
+  description = "Subnet map for region 2 {az_name = cidr}. Leave empty for dynamic AZ discovery."
+  type    = map(string)
+  default = {}
 }
 
 variable "client_2_enabled" {
@@ -52,10 +49,9 @@ variable "client_2_enabled" {
 }
 
 variable "bastion_2_subnet" {
-  type = map
-  default = {
-    us-west-1a = "10.2.4.0/24"
-  }
+  description = "Bastion subnet map for region 2 {az_name = cidr}. Leave empty for dynamic AZ discovery."
+  type    = map(string)
+  default = {}
 }
 
 variable "rack_aware" {

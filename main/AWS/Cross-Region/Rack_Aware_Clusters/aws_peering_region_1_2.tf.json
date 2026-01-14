@@ -1,10 +1,4 @@
 {
-    "locals": {
-        "common_tags": {
-            "owner": "${var.owner}",
-            "skip_deletion": "${var.skip_deletion}"
-        }
-    },
     "module": {
         "peering-vpc1-vpc2": {
             "source": "../../../../modules/aws/peering",

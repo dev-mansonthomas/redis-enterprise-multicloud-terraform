@@ -197,21 +197,56 @@ case $CLOUD_PROVIDER in
         VAR_ARGS="$VAR_ARGS -var=\"aws_access_key=$AWS_KEY\""
         VAR_ARGS="$VAR_ARGS -var=\"aws_secret_key=$AWS_SEC\""
 
-        # Add AWS-specific configuration
-        if [ -n "$AWS_REGION_NAME" ]; then
-            VAR_ARGS="$VAR_ARGS -var=\"region_name=$AWS_REGION_NAME\""
+        # Detect if this is a Cross-Region deployment
+        if [[ "$CURRENT_DIR" == *"/Cross-Region/"* ]]; then
+            # Cross-Region: use region_1_name, region_2_name, machine_image_region_1, machine_image_region_2
+            if [ -n "$AWS_REGION_NAME" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_1_name=$AWS_REGION_NAME\""
+                # Use region name as env1 for DNS (cluster.<region>-<deployment>.hosted_zone)
+                VAR_ARGS="$VAR_ARGS -var=\"env1=$AWS_REGION_NAME\""
+            fi
+            if [ -n "$AWS_REGION_NAME_REGION_2" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_2_name=$AWS_REGION_NAME_REGION_2\""
+                # Use region name as env2 for DNS
+                VAR_ARGS="$VAR_ARGS -var=\"env2=$AWS_REGION_NAME_REGION_2\""
+            else
+                echo "Error: AWS_REGION_NAME_REGION_2 is required for Cross-Region deployments."
+                exit 1
+            fi
+            if [ -n "$AWS_MACHINE_IMAGE" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"machine_image_region_1=$AWS_MACHINE_IMAGE\""
+            fi
+            if [ -n "$AWS_MACHINE_IMAGE_REGION_2" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"machine_image_region_2=$AWS_MACHINE_IMAGE_REGION_2\""
+            else
+                echo "Error: AWS_MACHINE_IMAGE_REGION_2 is required for Cross-Region deployments."
+                exit 1
+            fi
+        else
+            # Mono-Region: use region_name, machine_image
+            if [ -n "$AWS_REGION_NAME" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_name=$AWS_REGION_NAME\""
+            fi
+            if [ -n "$AWS_MACHINE_IMAGE" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"machine_image=$AWS_MACHINE_IMAGE\""
+            fi
         fi
+
+        # Common AWS configuration
         if [ -n "$AWS_VOLUME_TYPE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"volume_type=$AWS_VOLUME_TYPE\""
         fi
         if [ -n "$AWS_MACHINE_TYPE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"machine_type=$AWS_MACHINE_TYPE\""
         fi
-        if [ -n "$AWS_MACHINE_IMAGE" ]; then
-            VAR_ARGS="$VAR_ARGS -var=\"machine_image=$AWS_MACHINE_IMAGE\""
-        fi
         if [ -n "$AWS_HOSTED_ZONE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"hosted_zone=$AWS_HOSTED_ZONE\""
+        fi
+        if [ -n "$SSH_PRIVATE_KEY" ]; then
+            VAR_ARGS="$VAR_ARGS -var=\"ssh_private_key=$SSH_PRIVATE_KEY\""
+        fi
+        if [ -n "$AWS_BASTION_MACHINE_TYPE" ]; then
+            VAR_ARGS="$VAR_ARGS -var=\"bastion_machine_type=$AWS_BASTION_MACHINE_TYPE\""
         fi
         ;;
         

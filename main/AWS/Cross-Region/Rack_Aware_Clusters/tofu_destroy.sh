@@ -107,6 +107,12 @@ if [ -n "$FLASH_ENABLED" ]; then
     VAR_ARGS="$VAR_ARGS -var=\"flash_enabled=$FLASH_ENABLED\""
 fi
 
+# Detect if this is a Cross-Region configuration
+IS_CROSS_REGION=false
+if [[ "$CURRENT_DIR" == *"/Cross-Region/"* ]]; then
+    IS_CROSS_REGION=true
+fi
+
 # Add cloud-specific credentials
 case $CLOUD_PROVIDER in
     aws)
@@ -130,18 +136,35 @@ case $CLOUD_PROVIDER in
         VAR_ARGS="$VAR_ARGS -var=\"aws_access_key=$AWS_KEY\""
         VAR_ARGS="$VAR_ARGS -var=\"aws_secret_key=$AWS_SEC\""
 
-        # Add AWS-specific configuration
-        if [ -n "$AWS_REGION_NAME" ]; then
-            VAR_ARGS="$VAR_ARGS -var=\"region_name=$AWS_REGION_NAME\""
+        # Add AWS-specific configuration (Cross-Region vs Single-Region)
+        if [ "$IS_CROSS_REGION" = true ]; then
+            # Cross-Region: use region_1_name and region_2_name
+            if [ -n "$AWS_REGION_NAME" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_1_name=$AWS_REGION_NAME\""
+            fi
+            if [ -n "$AWS_REGION_NAME_REGION_2" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_2_name=$AWS_REGION_NAME_REGION_2\""
+            fi
+            if [ -n "$AWS_MACHINE_IMAGE" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"machine_image_region_1=$AWS_MACHINE_IMAGE\""
+            fi
+            if [ -n "$AWS_MACHINE_IMAGE_REGION_2" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"machine_image_region_2=$AWS_MACHINE_IMAGE_REGION_2\""
+            fi
+        else
+            # Single-Region: use region_name and machine_image
+            if [ -n "$AWS_REGION_NAME" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_name=$AWS_REGION_NAME\""
+            fi
+            if [ -n "$AWS_MACHINE_IMAGE" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"machine_image=$AWS_MACHINE_IMAGE\""
+            fi
         fi
         if [ -n "$AWS_VOLUME_TYPE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"volume_type=$AWS_VOLUME_TYPE\""
         fi
         if [ -n "$AWS_MACHINE_TYPE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"machine_type=$AWS_MACHINE_TYPE\""
-        fi
-        if [ -n "$AWS_MACHINE_IMAGE" ]; then
-            VAR_ARGS="$VAR_ARGS -var=\"machine_image=$AWS_MACHINE_IMAGE\""
         fi
         if [ -n "$AWS_HOSTED_ZONE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"hosted_zone=$AWS_HOSTED_ZONE\""
