@@ -240,6 +240,201 @@ export AZURE_CLIENT_SECRET="your-client-secret"
 AZURE_CREDENTIALS_FILE=~/.cred/azure.sh
 ```
 
+## DNS Subdomain Delegation
+
+To use a dedicated subdomain for each cloud provider (e.g., `aws.paquerette.com`, `gcp.paquerette.com`, `azure.paquerette.com`), you need to delegate DNS zones from your main domain registrar to each cloud provider.
+
+### Overview
+
+The process is the same for all providers:
+1. Create a hosted zone in the cloud provider for your subdomain
+2. Get the NS (Name Server) records from the cloud provider
+3. Add those NS records to your main domain registrar
+
+### AWS Route 53
+
+**Step 1: Create the hosted zone**
+
+```bash
+# Create hosted zone for aws.yourdomain.com
+aws route53 create-hosted-zone \
+  --name "aws.yourdomain.com" \
+  --caller-reference "$(date +%s)"
+```
+
+**Step 2: Get the NS records**
+
+```bash
+# Get the hosted zone ID
+ZONE_ID=$(aws route53 list-hosted-zones-by-name \
+  --dns-name "aws.yourdomain.com" \
+  --query "HostedZones[0].Id" --output text)
+
+# Get the NS records
+aws route53 get-hosted-zone --id $ZONE_ID \
+  --query "DelegationSet.NameServers" --output table
+```
+
+You'll get something like:
+```
+ns-123.awsdns-45.com
+ns-678.awsdns-90.net
+ns-111.awsdns-22.org
+ns-333.awsdns-44.co.uk
+```
+
+**Step 3: Configure in your registrar**
+
+Add NS records for `aws` subdomain pointing to the AWS nameservers above.
+
+### Google Cloud DNS
+
+**Step 1: Create the DNS zone**
+
+```bash
+# Create DNS zone for gcp.yourdomain.com
+gcloud dns managed-zones create gcp-yourdomain-com \
+  --dns-name="gcp.yourdomain.com." \
+  --description="GCP subdomain for yourdomain.com" \
+  --project=YOUR_PROJECT_ID
+```
+
+**Step 2: Get the NS records**
+
+```bash
+# Get the NS records for the zone
+gcloud dns managed-zones describe gcp-yourdomain-com \
+  --project=YOUR_PROJECT_ID \
+  --format="value(nameServers)"
+```
+
+You'll get something like:
+```
+ns-cloud-a1.googledomains.com.
+ns-cloud-a2.googledomains.com.
+ns-cloud-a3.googledomains.com.
+ns-cloud-a4.googledomains.com.
+```
+
+**Step 3: Configure in your registrar**
+
+Add NS records for `gcp` subdomain pointing to the Google nameservers above.
+
+### Azure DNS
+
+**Step 1: Create a resource group (if needed)**
+
+```bash
+# Create resource group for DNS
+az group create --name dns-rg --location westeurope
+```
+
+**Step 2: Create the DNS zone**
+
+```bash
+# Create DNS zone for azure.yourdomain.com
+az network dns zone create \
+  --resource-group dns-rg \
+  --name "azure.yourdomain.com"
+```
+
+**Step 3: Get the NS records**
+
+```bash
+# Get the NS records for the zone
+az network dns zone show \
+  --resource-group dns-rg \
+  --name "azure.yourdomain.com" \
+  --query "nameServers" --output tsv
+```
+
+You'll get something like:
+```
+ns1-01.azure-dns.com.
+ns2-01.azure-dns.net.
+ns3-01.azure-dns.org.
+ns4-01.azure-dns.info.
+```
+
+**Step 4: Configure in your registrar**
+
+Add NS records for `azure` subdomain pointing to the Azure nameservers above.
+
+### Configuring Your Domain Registrar
+
+In your domain registrar (e.g., OVH, Gandi, GoDaddy, Namecheap), add NS records for each subdomain:
+
+| Subdomain | Type | Value |
+|-----------|------|-------|
+| aws | NS | ns-123.awsdns-45.com |
+| aws | NS | ns-678.awsdns-90.net |
+| aws | NS | ns-111.awsdns-22.org |
+| aws | NS | ns-333.awsdns-44.co.uk |
+| gcp | NS | ns-cloud-a1.googledomains.com |
+| gcp | NS | ns-cloud-a2.googledomains.com |
+| gcp | NS | ns-cloud-a3.googledomains.com |
+| gcp | NS | ns-cloud-a4.googledomains.com |
+| azure | NS | ns1-01.azure-dns.com |
+| azure | NS | ns2-01.azure-dns.net |
+| azure | NS | ns3-01.azure-dns.org |
+| azure | NS | ns4-01.azure-dns.info |
+
+#### Example Zone File Format (BIND syntax)
+
+If you edit your DNS zone file directly, add entries like this:
+
+```dns
+; AWS subdomain delegation
+aws     10800   IN  NS  ns-123.awsdns-45.com.
+aws     10800   IN  NS  ns-678.awsdns-90.net.
+aws     10800   IN  NS  ns-111.awsdns-22.org.
+aws     10800   IN  NS  ns-333.awsdns-44.co.uk.
+
+; GCP subdomain delegation
+gcp     10800   IN  NS  ns-cloud-c1.googledomains.com.
+gcp     10800   IN  NS  ns-cloud-c2.googledomains.com.
+gcp     10800   IN  NS  ns-cloud-c3.googledomains.com.
+gcp     10800   IN  NS  ns-cloud-c4.googledomains.com.
+
+; Azure subdomain delegation
+azure   10800   IN  NS  ns1-01.azure-dns.com.
+azure   10800   IN  NS  ns2-01.azure-dns.net.
+azure   10800   IN  NS  ns3-01.azure-dns.org.
+azure   10800   IN  NS  ns4-01.azure-dns.info.
+```
+
+> **Note**: The TTL (10800 = 3 hours) can be adjusted. Don't forget the trailing dot (.) after nameserver FQDNs.
+
+### Verify DNS Delegation
+
+After adding NS records (propagation can take up to 48 hours):
+
+```bash
+# Verify AWS delegation
+dig NS aws.yourdomain.com
+
+# Verify GCP delegation
+dig NS gcp.yourdomain.com
+
+# Verify Azure delegation
+dig NS azure.yourdomain.com
+```
+
+### Update .env Configuration
+
+Once delegation is complete, update your `.env` file:
+
+```bash
+# AWS
+AWS_HOSTED_ZONE_NAME=aws-yourdomain-com
+
+# GCP
+GCP_HOSTED_ZONE_NAME=gcp-yourdomain-com
+
+# Azure
+AZURE_HOSTED_ZONE_NAME=azure.yourdomain.com
+```
+
 ## Redis Enterprise Architecture
 
 A Redis Enterprise cluster is composed of identical nodes that are deployed within a data center or stretched across local availability zones. Redis Enterprise architecture is made up of a management path (shown in the blue layer in the figure below) and data access path (shown in the red layer in the figure below).

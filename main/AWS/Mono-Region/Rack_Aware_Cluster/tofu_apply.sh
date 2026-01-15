@@ -164,6 +164,9 @@ fi
 if [ -n "$SSH_PUBLIC_KEY" ]; then
     VAR_ARGS="$VAR_ARGS -var=\"ssh_public_key=$SSH_PUBLIC_KEY\""
 fi
+if [ -n "$SSH_PRIVATE_KEY" ]; then
+    VAR_ARGS="$VAR_ARGS -var=\"ssh_private_key=$SSH_PRIVATE_KEY\""
+fi
 if [ -n "$CLUSTER_SIZE" ]; then
     VAR_ARGS="$VAR_ARGS -var=\"cluster_size=$CLUSTER_SIZE\""
 fi

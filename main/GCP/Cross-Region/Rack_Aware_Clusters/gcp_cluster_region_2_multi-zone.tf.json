@@ -7,20 +7,14 @@
             "alias": "provider2"
         }
     },
-    "locals": {
-        "common_labels": {
-            "owner": "${var.owner}",
-            "skip_deletion": "${var.skip_deletion}"
-        }
-    },
     "module": {
         "network-vpc-2": {
             "source": "../../../../modules/gcp/network",
             "name": "${var.deployment_name}-${var.env2}",
             "region": "${var.region_2_name}",
             "resource_tags": "${local.common_labels}",
-            "subnets": "${var.subnets_2}",
-            "bastion_subnet": "${var.bastion_2_subnet}",
+            "subnets": "${local.computed_subnets_2}",
+            "bastion_subnet": "${local.computed_bastion_2_subnet}",
             "private_conf": "${var.private_conf}",
             "client_enabled": "${var.client_2_enabled}",
             "providers": {
@@ -36,7 +30,7 @@
             "resource_tags": "${local.common_labels}",
             "ssh_user": "${var.ssh_user}",
             "ssh_public_key": "${var.ssh_public_key}",
-            "availability_zones": "${keys(var.subnets_2)}",
+            "availability_zones": "${local.selected_zones_2}",
             "rack_aware": "${var.rack_aware}",
             "subnets": "${module.network-vpc-2.subnets}",
             "private_conf": "${var.private_conf}",
@@ -55,9 +49,9 @@
             "source": "../../../../modules/gcp/bastion",
             "name": "${var.deployment_name}-${var.env2}",
             "subnet": "${module.network-vpc-2.bastion-subnet[0].id}",
-            "availability_zone": "${keys(var.bastion_2_subnet)[0]}",
+            "availability_zone": "${local.bastion_zone_2}",
             "machine_image": "${var.machine_image}",
-            "machine_type": "${var.machine_type}",
+            "machine_type": "${var.bastion_machine_type}",
             "memtier_package": "${var.memtier_package}",
             "redis_stack_package": "${var.redis_stack_package}",
             "promethus_package": "${var.promethus_package}",

@@ -164,6 +164,9 @@ fi
 if [ -n "$SSH_PUBLIC_KEY" ]; then
     VAR_ARGS="$VAR_ARGS -var=\"ssh_public_key=$SSH_PUBLIC_KEY\""
 fi
+if [ -n "$SSH_PRIVATE_KEY" ]; then
+    VAR_ARGS="$VAR_ARGS -var=\"ssh_private_key=$SSH_PRIVATE_KEY\""
+fi
 if [ -n "$CLUSTER_SIZE" ]; then
     VAR_ARGS="$VAR_ARGS -var=\"cluster_size=$CLUSTER_SIZE\""
 fi
@@ -239,14 +242,18 @@ case $CLOUD_PROVIDER in
         if [ -n "$GCP_MACHINE_TYPE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"machine_type=$GCP_MACHINE_TYPE\""
         fi
+        if [ -n "$GCP_BASTION_MACHINE_TYPE" ]; then
+            VAR_ARGS="$VAR_ARGS -var=\"bastion_machine_type=$GCP_BASTION_MACHINE_TYPE\""
+        fi
         if [ -n "$GCP_MACHINE_IMAGE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"machine_image=$GCP_MACHINE_IMAGE\""
         fi
-        if [ -n "$GCP_HOSTED_ZONE" ]; then
-            VAR_ARGS="$VAR_ARGS -var=\"hosted_zone=$GCP_HOSTED_ZONE\""
-        fi
-        if [ -n "$GCP_HOSTED_ZONE_NAME" ]; then
-            VAR_ARGS="$VAR_ARGS -var=\"hosted_zone_name=$GCP_HOSTED_ZONE_NAME\""
+        # GCP_DOMAIN_NAME is used for both hosted_zone (domain) and hosted_zone_name (zone identifier)
+        if [ -n "$GCP_DOMAIN_NAME" ]; then
+            VAR_ARGS="$VAR_ARGS -var=\"hosted_zone=$GCP_DOMAIN_NAME\""
+            # Convert domain to zone name (replace dots with hyphens)
+            GCP_ZONE_NAME=$(echo "$GCP_DOMAIN_NAME" | tr '.' '-')
+            VAR_ARGS="$VAR_ARGS -var=\"hosted_zone_name=$GCP_ZONE_NAME\""
         fi
         ;;
 

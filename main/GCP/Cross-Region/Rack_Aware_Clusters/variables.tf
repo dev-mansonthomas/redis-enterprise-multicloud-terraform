@@ -37,41 +37,14 @@ variable "client_1_enabled" {
   default = true
 }
 
-variable "subnets_1" {
-  type = map
-  default = {
-    europe-west1-b = "10.1.1.0/24"
-    europe-west1-c = "10.1.2.0/24"
-    europe-west1-d = "10.1.3.0/24"  
-    }
-}
-
-variable "bastion_1_subnet" {
-  type = map
-  default = {
-    europe-west1-c = "10.1.4.0/24"
-  }
-}
+# NOTE: subnets_1, bastion_1_subnet, subnets_2, bastion_2_subnet are now
+# dynamically generated in data.tf based on the available zones in each region.
+# See local.computed_subnets_1, local.computed_bastion_1_subnet,
+#     local.computed_subnets_2, local.computed_bastion_2_subnet
 
 variable "client_2_enabled" {
   // When a private configuration is enabled, this flag should be enabled !
   default = true
-}
-
-variable "subnets_2" {
-  type = map
-  default = {
-    us-east1-b = "10.2.1.0/24"
-    us-east1-c = "10.2.2.0/24"
-    us-east1-d = "10.2.3.0/24"
-  }
-}
-
-variable "bastion_2_subnet" {
-  type = map
-  default = {
-    us-east1-c = "10.2.4.0/24"
-  }
 }
 
 variable "rack_aware" {
