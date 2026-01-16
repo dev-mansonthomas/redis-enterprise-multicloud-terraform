@@ -33,23 +33,42 @@ check_azure_credentials() {
 
 # -----------------------------------------------------------------------------
 # Build Azure-specific Terraform variables
+# Supports two authentication methods:
+# 1. Service Principal (AZURE_CLIENT_ID + AZURE_CLIENT_SECRET + AZURE_TENANT_ID)
+# 2. Azure CLI (az login) - used when Service Principal credentials are not set
 # -----------------------------------------------------------------------------
 build_azure_vars() {
-    # Check required Azure credentials
-    if [ -z "$AZURE_SUBSCRIPTION_ID" ] || [ -z "$AZURE_TENANT_ID" ]; then
-        log_error "Azure credentials are not set in .env file."
+    # Azure requires at minimum subscription_id
+    if [ -z "$AZURE_SUBSCRIPTION_ID" ]; then
+        log_error "AZURE_SUBSCRIPTION_ID is not set in .env file."
         return 1
     fi
-    
-    VAR_ARGS="$VAR_ARGS -var=\"subscription_id=$AZURE_SUBSCRIPTION_ID\""
-    VAR_ARGS="$VAR_ARGS -var=\"tenant_id=$AZURE_TENANT_ID\""
-    
-    if [ -n "$AZURE_CLIENT_ID" ]; then
-        VAR_ARGS="$VAR_ARGS -var=\"client_id=$AZURE_CLIENT_ID\""
-    fi
-    
-    if [ -n "$AZURE_CLIENT_SECRET" ]; then
-        VAR_ARGS="$VAR_ARGS -var=\"client_secret=$AZURE_CLIENT_SECRET\""
+
+    VAR_ARGS="$VAR_ARGS -var=\"azure_subscription_id=$AZURE_SUBSCRIPTION_ID\""
+
+    # Check authentication mode: Service Principal or Azure CLI
+    if [ -n "$AZURE_CLIENT_ID" ] && [ -n "$AZURE_CLIENT_SECRET" ] && [ -n "$AZURE_TENANT_ID" ]; then
+        # Service Principal authentication
+        log_info "Using Service Principal authentication"
+        VAR_ARGS="$VAR_ARGS -var=\"azure_tenant_id=$AZURE_TENANT_ID\""
+        VAR_ARGS="$VAR_ARGS -var=\"azure_access_key_id=$AZURE_CLIENT_ID\""
+        VAR_ARGS="$VAR_ARGS -var=\"azure_secret_key=$AZURE_CLIENT_SECRET\""
+        VAR_ARGS="$VAR_ARGS -var=\"use_cli_auth=false\""
+    else
+        # Azure CLI authentication - verify az login
+        log_info "Using Azure CLI authentication (az login)"
+        if ! az account show &>/dev/null; then
+            log_error "Not logged in to Azure CLI. Please run 'az login' first."
+            return 1
+        fi
+        VAR_ARGS="$VAR_ARGS -var=\"use_cli_auth=true\""
+        # Get tenant_id from az account if not set
+        if [ -z "$AZURE_TENANT_ID" ]; then
+            AZURE_TENANT_ID=$(az account show --query tenantId -o tsv 2>/dev/null)
+        fi
+        if [ -n "$AZURE_TENANT_ID" ]; then
+            VAR_ARGS="$VAR_ARGS -var=\"azure_tenant_id=$AZURE_TENANT_ID\""
+        fi
     fi
 
     # Add Azure-specific configuration
@@ -71,7 +90,7 @@ build_azure_vars() {
     if [ -n "$AZ_HOSTED_ZONE" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"hosted_zone=$AZ_HOSTED_ZONE\""
     fi
-    
+
     export VAR_ARGS
     return 0
 }

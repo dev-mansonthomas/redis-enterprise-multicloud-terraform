@@ -10,12 +10,12 @@ terraform {
 
 data "azurerm_dns_zone" "hosted_zone" {
   name                = "${var.hosted_zone}"
-  resource_group_name = "SA_Group"
+  resource_group_name = var.dns_resource_group
 }
 
 resource "azurerm_dns_a_record" "A-records" {
   zone_name           = data.azurerm_dns_zone.hosted_zone.name
-  resource_group_name = "SA_Group"
+  resource_group_name = var.dns_resource_group
   tags                = "${var.resource_tags}"
   name                = replace("node${count.index+1}.cluster.${var.subdomain}.${var.hosted_zone}", ".${data.azurerm_dns_zone.hosted_zone.name}", "")
   ttl                 = 60
@@ -25,7 +25,7 @@ resource "azurerm_dns_a_record" "A-records" {
 
 resource "azurerm_dns_ns_record" "NS-record" {
   zone_name           = data.azurerm_dns_zone.hosted_zone.name
-  resource_group_name = "SA_Group"
+  resource_group_name = var.dns_resource_group
   tags                = "${var.resource_tags}"
   name                = replace("cluster.${var.subdomain}.${var.hosted_zone}", ".${data.azurerm_dns_zone.hosted_zone.name}", "")
   ttl                 = 60

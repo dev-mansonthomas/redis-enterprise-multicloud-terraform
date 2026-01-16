@@ -21,3 +21,8 @@ variable "resource_group" {
   description = "Azure resourcegroup for the deployment"
   type        = string
 }
+
+variable "dns_resource_group" {
+  description = "Azure resource group containing the DNS zone (can be different from deployment resource group)"
+  type        = string
+}

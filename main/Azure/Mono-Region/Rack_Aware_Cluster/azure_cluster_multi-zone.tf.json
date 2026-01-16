@@ -1,13 +1,4 @@
 {
-    "provider": {
-        "azurerm": {
-            "features": {},
-            "client_id": "${var.azure_access_key_id}",
-            "tenant_id": "${var.azure_tenant_id}",
-            "subscription_id": "${var.azure_subscription_id}",
-            "client_secret": "${var.azure_secret_key}"
-        }
-    },
     "locals": {
         "common_tags": {
             "owner": "${var.owner}",
@@ -64,7 +55,7 @@
             "availability_zone": "${keys(var.bastion_subnet)[0]}",
             "security_groups": "${module.network-vnet.security-groups}",
             "machine_image": "${var.machine_image}",
-            "machine_type": "${var.machine_type}",
+            "machine_type": "${var.bastion_machine_type}",
             "memtier_package": "${var.memtier_package}",
             "redis_stack_package": "${var.redis_stack_package}",
             "redis_insight_package": "${var.redis_insight_package}",
@@ -84,6 +75,7 @@
             "hosted_zone": "${var.hosted_zone}",
             "resource_tags": "${local.common_tags}",
             "resource_group": "${module.resource-group.rg-name}",
+            "dns_resource_group": "${var.dns_resource_group}",
             "ip_addresses": "${module.rs-cluster.re-public-ips}"
         }
     },

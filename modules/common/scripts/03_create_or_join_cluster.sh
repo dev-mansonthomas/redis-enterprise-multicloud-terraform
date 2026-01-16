@@ -82,28 +82,26 @@ echo "${INTERNAL_IP} ${HOSTNAME_FMT}" >> /etc/hosts
 # ============================================================================
 build_cluster_command() {
     local cmd="/opt/redislabs/bin/rladmin cluster"
-    
+
     if [ "$MODE" = "init" ]; then
         cmd="$cmd create name ${CLUSTER_DNS}"
+        cmd="$cmd username ${ADMIN_USER} password '${ADMIN_PASSWORD}'"
+        # flash_enabled is only valid for cluster create, not join
+        if [ "${FLASH_ENABLED:-false}" = "true" ]; then
+            cmd="$cmd flash_enabled"
+        fi
+        cmd="$cmd rack_aware rack_id '${ZONE}'"
     else
         cmd="$cmd join nodes ${MASTER_IP}"
+        cmd="$cmd username ${ADMIN_USER} password '${ADMIN_PASSWORD}'"
+        cmd="$cmd rack_id '${ZONE}'"
     fi
-    
-    cmd="$cmd username ${ADMIN_USER} password '${ADMIN_PASSWORD}'"
-    cmd="$cmd flash_enabled"
-    
+
     # Add external address if not 'none' (for public configurations)
     if [ "$EXTERNAL_ADDR" != "none" ]; then
         cmd="$cmd external_addr ${EXTERNAL_ADDR}"
     fi
-    
-    # Add rack awareness
-    if [ "$MODE" = "init" ]; then
-        cmd="$cmd rack_aware rack_id '${ZONE}'"
-    else
-        cmd="$cmd rack_id '${ZONE}'"
-    fi
-    
+
     echo "$cmd"
 }
 

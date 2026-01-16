@@ -254,20 +254,76 @@ case $CLOUD_PROVIDER in
         ;;
 
     azure)
-        if [ -z "$AZURE_SUBSCRIPTION_ID" ] || [ -z "$AZURE_TENANT_ID" ]; then
-            echo "Error: Azure credentials are not set in .env file."
+        # Load Azure credentials
+        if [ -n "$AZURE_CREDENTIALS_FILE" ]; then
+            # Expand tilde in path
+            AZURE_CREDENTIALS_FILE="${AZURE_CREDENTIALS_FILE/#\~/$HOME}"
+            if [ -f "$AZURE_CREDENTIALS_FILE" ]; then
+                echo "Loading Azure credentials from $AZURE_CREDENTIALS_FILE..."
+                source "$AZURE_CREDENTIALS_FILE"
+            else
+                echo "Warning: Azure credentials file not found: $AZURE_CREDENTIALS_FILE"
+            fi
+        elif [ -f ~/.cred/azure.sh ]; then
+            echo "Loading Azure credentials from ~/.cred/azure.sh..."
+            source ~/.cred/azure.sh
+        fi
+
+        # Azure requires at minimum subscription_id
+        if [ -z "$AZURE_SUBSCRIPTION_ID" ]; then
+            echo "Error: AZURE_SUBSCRIPTION_ID is not set in .env file or credentials file."
             exit 1
         fi
 
-        VAR_ARGS="$VAR_ARGS -var=\"subscription_id=$AZURE_SUBSCRIPTION_ID\""
-        VAR_ARGS="$VAR_ARGS -var=\"tenant_id=$AZURE_TENANT_ID\""
+        VAR_ARGS="$VAR_ARGS -var=\"azure_subscription_id=$AZURE_SUBSCRIPTION_ID\""
 
-        if [ -n "$AZURE_CLIENT_ID" ]; then
-            VAR_ARGS="$VAR_ARGS -var=\"client_id=$AZURE_CLIENT_ID\""
+        # Check authentication mode: Service Principal or Azure CLI
+        if [ -n "$AZURE_CLIENT_ID" ] && [ -n "$AZURE_CLIENT_SECRET" ] && [ -n "$AZURE_TENANT_ID" ]; then
+            # Service Principal authentication
+            echo "Using Service Principal authentication"
+            VAR_ARGS="$VAR_ARGS -var=\"azure_tenant_id=$AZURE_TENANT_ID\""
+            VAR_ARGS="$VAR_ARGS -var=\"azure_access_key_id=$AZURE_CLIENT_ID\""
+            VAR_ARGS="$VAR_ARGS -var=\"azure_secret_key=$AZURE_CLIENT_SECRET\""
+            VAR_ARGS="$VAR_ARGS -var=\"use_cli_auth=false\""
+        else
+            # Azure CLI authentication - verify az login
+            echo "Using Azure CLI authentication (az login)"
+            if ! az account show &>/dev/null; then
+                echo "Error: Not logged in to Azure CLI. Please run 'az login' first."
+                exit 1
+            fi
+            VAR_ARGS="$VAR_ARGS -var=\"use_cli_auth=true\""
+            # Get tenant_id from az account if not set
+            if [ -z "$AZURE_TENANT_ID" ]; then
+                AZURE_TENANT_ID=$(az account show --query tenantId -o tsv 2>/dev/null)
+            fi
+            if [ -n "$AZURE_TENANT_ID" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"azure_tenant_id=$AZURE_TENANT_ID\""
+            fi
         fi
 
-        if [ -n "$AZURE_CLIENT_SECRET" ]; then
-            VAR_ARGS="$VAR_ARGS -var=\"client_secret=$AZURE_CLIENT_SECRET\""
+        # Azure-specific SSH keys (RSA only - Azure doesn't support ed25519)
+        if [ -n "$AZURE_SSH_PUBLIC_KEY" ]; then
+            # Expand tilde
+            AZURE_SSH_PUBLIC_KEY="${AZURE_SSH_PUBLIC_KEY/#\~/$HOME}"
+            if [ -f "$AZURE_SSH_PUBLIC_KEY" ]; then
+                echo "Using Azure-specific RSA SSH public key: $AZURE_SSH_PUBLIC_KEY"
+                VAR_ARGS="$VAR_ARGS -var=\"ssh_public_key=$AZURE_SSH_PUBLIC_KEY\""
+            else
+                echo "Error: Azure SSH public key file not found: $AZURE_SSH_PUBLIC_KEY"
+                exit 1
+            fi
+        fi
+        if [ -n "$AZURE_SSH_PRIVATE_KEY" ]; then
+            # Expand tilde
+            AZURE_SSH_PRIVATE_KEY="${AZURE_SSH_PRIVATE_KEY/#\~/$HOME}"
+            if [ -f "$AZURE_SSH_PRIVATE_KEY" ]; then
+                echo "Using Azure-specific RSA SSH private key: $AZURE_SSH_PRIVATE_KEY"
+                VAR_ARGS="$VAR_ARGS -var=\"ssh_private_key=$AZURE_SSH_PRIVATE_KEY\""
+            else
+                echo "Error: Azure SSH private key file not found: $AZURE_SSH_PRIVATE_KEY"
+                exit 1
+            fi
         fi
 
         # Add Azure-specific configuration
@@ -280,11 +336,17 @@ case $CLOUD_PROVIDER in
         if [ -n "$AZ_MACHINE_TYPE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"machine_type=$AZ_MACHINE_TYPE\""
         fi
+        if [ -n "$AZ_BASTION_MACHINE_TYPE" ]; then
+            VAR_ARGS="$VAR_ARGS -var=\"bastion_machine_type=$AZ_BASTION_MACHINE_TYPE\""
+        fi
         if [ -n "$AZ_MACHINE_IMAGE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"machine_image=$AZ_MACHINE_IMAGE\""
         fi
         if [ -n "$AZ_HOSTED_ZONE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"hosted_zone=$AZ_HOSTED_ZONE\""
+        fi
+        if [ -n "$AZ_DNS_RESOURCE_GROUP" ]; then
+            VAR_ARGS="$VAR_ARGS -var=\"dns_resource_group=$AZ_DNS_RESOURCE_GROUP\""
         fi
         ;;
 esac

@@ -35,7 +35,9 @@ TerraMine is a set of Terraform/OpenTofu templates designed to provision differe
 ## Prerequisites
 
 - Install [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli) or [OpenTofu](https://opentofu.org/docs/intro/install/)
-- Create an SSH key file (`~/.ssh/id_rsa`)
+- Create SSH key files:
+  - For AWS/GCP: RSA or ed25519 (`~/.ssh/id_ed25519` or `~/.ssh/id_rsa`)
+  - For Azure: **RSA only** (`~/.ssh/id_rsa`) - Azure does NOT support ed25519
 - Cloud provider credentials (see [Cloud Provider Setup](#cloud-provider-setup))
 
 ## 🚀 Quick Start
@@ -217,16 +219,45 @@ GCP_PROJECT_ID=your-gcp-project-id
 
 ### Azure Setup
 
-1. Create a service principal with at least the "Contributor" role:
+TerraMine supports **two authentication methods** for Azure:
 
+#### Option 1: Azure CLI Authentication (Recommended for local development)
+
+Best for developers who don't have permission to create Service Principals.
+
+1. Install Azure CLI: `brew install azure-cli` (macOS) or see [Appendix A](#appendix-a-azure-cli-setup)
+
+2. Login to Azure:
 ```bash
-az ad sp create-for-rbac --name <service_principal_name> --role Contributor --scopes /subscriptions/<subscription_id>
+az login
 ```
 
-**Important:** You might not be able to create a service principal if your Azure credentials are set to "contributor". If this is the case, the creation will fail with an authorization error.
+3. Get your subscription ID:
+```bash
+az account show --query id -o tsv
+```
 
-2. Create a credentials file (e.g., `~/.cred/azure.sh`) with the following content:
+4. Create credentials file `~/.cred/azure.sh`:
+```bash
+export AZURE_SUBSCRIPTION_ID="your-subscription-id"
+# tenant_id is auto-detected from your az login session
+```
 
+5. Configure in `.env`:
+```bash
+AZURE_CREDENTIALS_FILE=~/.cred/azure.sh
+```
+
+#### Option 2: Service Principal Authentication (For CI/CD automation)
+
+Best for automated pipelines. Requires permission to create Service Principals.
+
+1. Create a service principal:
+```bash
+az ad sp create-for-rbac --name terramine-sp --role Contributor --scopes /subscriptions/<subscription_id>
+```
+
+2. Create credentials file `~/.cred/azure.sh`:
 ```bash
 export AZURE_SUBSCRIPTION_ID="your-subscription-id"
 export AZURE_TENANT_ID="your-tenant-id"
@@ -234,11 +265,33 @@ export AZURE_CLIENT_ID="your-client-id"
 export AZURE_CLIENT_SECRET="your-client-secret"
 ```
 
-3. Configure the path in your `.env` file:
-
+3. Configure in `.env`:
 ```bash
 AZURE_CREDENTIALS_FILE=~/.cred/azure.sh
 ```
+
+> **Note:** You need `Owner` or `Application Administrator` role to create Service Principals. With only `Contributor` role, use Option 1 (Azure CLI).
+
+#### SSH Key for Azure (RSA only)
+
+⚠️ **Azure does NOT support ed25519 SSH keys.** You must use an RSA key.
+
+If you use ed25519 for AWS/GCP, configure a separate RSA key for Azure in `.env`:
+
+```bash
+# For AWS/GCP (ed25519 supported)
+SSH_PUBLIC_KEY=~/.ssh/id_ed25519.pub
+
+# For Azure (RSA only!)
+AZURE_SSH_PUBLIC_KEY=~/.ssh/id_rsa.pub
+```
+
+Generate an RSA key if needed:
+```bash
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -C "azure"
+```
+
+📖 **For complete Azure setup instructions, see [Appendix A: Azure CLI Setup](#appendix-a-azure-cli-setup)**
 
 ## DNS Subdomain Delegation
 
@@ -360,6 +413,15 @@ ns4-01.azure-dns.info.
 
 Add NS records for `azure` subdomain pointing to the Azure nameservers above.
 
+**Step 5: Configure in `.env`**
+
+```bash
+AZ_HOSTED_ZONE=azure.yourdomain.com
+AZ_DNS_RESOURCE_GROUP=dns-rg  # The resource group you created in Step 1
+```
+
+> **Note:** `AZ_DNS_RESOURCE_GROUP` is required because the DNS zone is typically in a different resource group than your Redis cluster deployment.
+
 ### Configuring Your Domain Registrar
 
 In your domain registrar (e.g., OVH, Gandi, GoDaddy, Namecheap), add NS records for each subdomain:
@@ -432,7 +494,8 @@ AWS_HOSTED_ZONE_NAME=aws-yourdomain-com
 GCP_HOSTED_ZONE_NAME=gcp-yourdomain-com
 
 # Azure
-AZURE_HOSTED_ZONE_NAME=azure.yourdomain.com
+AZ_HOSTED_ZONE=azure.yourdomain.com
+AZ_DNS_RESOURCE_GROUP=dns-rg  # Resource group containing the DNS zone
 ```
 
 ## Redis Enterprise Architecture
@@ -701,4 +764,230 @@ This project is licensed under the terms specified in the [LICENSE](LICENSE) fil
 - [Terraform Documentation](https://www.terraform.io/docs)
 - [OpenTofu Documentation](https://opentofu.org/docs/)
 
+---
+
+## Appendices
+
+### Appendix A: Azure CLI Setup
+
+This appendix provides detailed instructions for setting up Azure CLI and configuring credentials for TerraMine deployments.
+
+TerraMine supports **two authentication methods**:
+
+| Method | Best For | Requirements |
+|--------|----------|--------------|
+| **Azure CLI** (`az login`) | Local development, users with only `Contributor` role | Just `az login` + subscription ID |
+| **Service Principal** | CI/CD pipelines, automation | `Owner` or `Application Administrator` role to create SP |
+
+#### Step 1: Install Azure CLI
+
+**macOS (using Homebrew):**
+```bash
+brew update && brew install azure-cli
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+```
+
+**Windows:**
+Download and run the [MSI installer](https://aka.ms/installazurecliwindows)
+
+**Verify installation:**
+```bash
+az --version
+```
+
+#### Step 2: Authenticate with Azure
+
+```bash
+az login
+```
+
+This will open a browser window for authentication. After successful login, verify your account:
+
+```bash
+az account show
+```
+
+You should see output like:
+```json
+{
+  "environmentName": "AzureCloud",
+  "id": "ef03f41d-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "isDefault": true,
+  "name": "Your Subscription Name",
+  "state": "Enabled",
+  "tenantId": "1428732f-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "user": {
+    "name": "your.email@domain.com",
+    "type": "user"
+  }
+}
+```
+
+**Note the important values:**
+- `id` → This is your `AZURE_SUBSCRIPTION_ID`
+- `tenantId` → This is your `AZURE_TENANT_ID`
+
+#### Step 3: Check Your Permissions
+
+Before creating a service principal, verify you have the required permissions:
+
+```bash
+# Check your current role assignments
+az role assignment list --assignee $(az ad signed-in-user show --query id -o tsv) --output table
+```
+
+**To create a service principal, you need one of these roles:**
+- `Owner` on the subscription
+- `User Access Administrator` + `Contributor`
+- Or an Azure AD role like `Application Administrator` or `Cloud Application Administrator`
+
+If you only have `Contributor` role, you **cannot** create service principals. **Use Azure CLI authentication instead** (skip to Step 6).
+
+#### Step 4: Check for Existing Service Principals (Optional - for SP auth only)
+
+Before creating a new service principal, check if one already exists:
+
+```bash
+# List all service principals (app registrations) you have access to
+az ad sp list --all --query "[].{Name:displayName, AppId:appId, Created:createdDateTime}" --output table
+
+# Search for a specific service principal by name
+az ad sp list --display-name "terramine" --output table
+
+# Search for service principals containing a keyword
+az ad sp list --all --query "[?contains(displayName, 'terraform')].{Name:displayName, AppId:appId}" --output table
+```
+
+If you find an existing service principal you want to use, you can reset its credentials:
+
+```bash
+# Reset credentials for an existing service principal (generates new secret)
+az ad sp credential reset --id <app-id-or-name>
+```
+
+#### Step 5: Create a New Service Principal (Optional - for SP auth only)
+
+If you have the required permissions and need a new service principal:
+
+```bash
+# Get your subscription ID
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+
+# Create a service principal with Contributor role
+az ad sp create-for-rbac \
+  --name "terramine-sp" \
+  --role Contributor \
+  --scopes /subscriptions/$SUBSCRIPTION_ID
+```
+
+**Successful output:**
+```json
+{
+  "appId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "displayName": "terramine-sp",
+  "password": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "tenant": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+```
+
+**⚠️ IMPORTANT:** Save the `password` immediately! It's only shown once.
+
+**Map the values to your `.env`:**
+| Azure Output | `.env` Variable |
+|--------------|-----------------|
+| `appId` | `AZURE_CLIENT_ID` |
+| `password` | `AZURE_CLIENT_SECRET` |
+| `tenant` | `AZURE_TENANT_ID` |
+| Subscription ID | `AZURE_SUBSCRIPTION_ID` |
+
+#### Step 6: Create Credentials File
+
+**For Azure CLI authentication (Contributor role - most users):**
+
+```bash
+mkdir -p ~/.cred
+cat > ~/.cred/azure.sh << 'EOF'
+# Azure CLI authentication - only subscription_id required
+# Run 'az login' before deploying!
+export AZURE_SUBSCRIPTION_ID="your-subscription-id"
+# tenant_id is optional - auto-detected from az login session
+# export AZURE_TENANT_ID="your-tenant-id"
+EOF
+chmod 600 ~/.cred/azure.sh
+```
+
+**For Service Principal authentication (CI/CD automation):**
+
+```bash
+mkdir -p ~/.cred
+cat > ~/.cred/azure.sh << 'EOF'
+# Service Principal authentication - all four required
+export AZURE_SUBSCRIPTION_ID="your-subscription-id"
+export AZURE_TENANT_ID="your-tenant-id"
+export AZURE_CLIENT_ID="your-app-id"
+export AZURE_CLIENT_SECRET="your-password"
+EOF
+chmod 600 ~/.cred/azure.sh
+```
+
+#### Step 7: Configure `.env`
+
+Add to your `.env` file:
+
+```bash
+AZURE_CREDENTIALS_FILE=~/.cred/azure.sh
+```
+
+#### Troubleshooting
+
+**Error: "Insufficient privileges to complete the operation"**
+
+You don't have permission to create service principals. **Use Azure CLI authentication instead:**
+1. Make sure you're logged in: `az login`
+2. Only set `AZURE_SUBSCRIPTION_ID` in your credentials file
+3. Leave `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET` empty or unset
+
+**Error: "The subscription is not registered to use namespace 'Microsoft.Compute'"**
+
+Register the required resource providers:
+```bash
+az provider register --namespace Microsoft.Compute
+az provider register --namespace Microsoft.Network
+az provider register --namespace Microsoft.Storage
+```
+
+**Verify service principal works:**
+```bash
+# Login as the service principal
+az login --service-principal \
+  --username $AZURE_CLIENT_ID \
+  --password $AZURE_CLIENT_SECRET \
+  --tenant $AZURE_TENANT_ID
+
+# Verify access
+az account show
+```
+
+#### Useful Azure CLI Commands
+
+```bash
+# List all subscriptions
+az account list --output table
+
+# Switch to a different subscription
+az account set --subscription "Subscription Name or ID"
+
+# List available regions
+az account list-locations --output table
+
+# List available VM sizes in a region
+az vm list-sizes --location "France Central" --output table
+
+# Check resource provider registration status
+az provider list --query "[?registrationState=='Registered'].namespace" --output table
+```
 

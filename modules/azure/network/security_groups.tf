@@ -61,9 +61,37 @@ resource "azurerm_network_security_rule" "public-outgoing" {
     network_security_group_name = azurerm_network_security_group.allow-global.name
 }
 
+resource "azurerm_network_security_rule" "public-dns-udp" {
+    name                        = "${var.name}-public-DNS-UDP"
+    priority                    = 1004
+    direction                   = "Inbound"
+    access                      = "Allow"
+    protocol                    = "Udp"
+    source_port_range           = "*"
+    destination_port_ranges     = ["53", "5353"]
+    source_address_prefix       = "*"
+    destination_address_prefix  = "*"
+    resource_group_name         = var.resource_group
+    network_security_group_name = azurerm_network_security_group.allow-global.name
+}
+
+resource "azurerm_network_security_rule" "public-dns-tcp" {
+    name                        = "${var.name}-public-DNS-TCP"
+    priority                    = 1005
+    direction                   = "Inbound"
+    access                      = "Allow"
+    protocol                    = "Tcp"
+    source_port_range           = "*"
+    destination_port_ranges     = ["53", "5353"]
+    source_address_prefix       = "*"
+    destination_address_prefix  = "*"
+    resource_group_name         = var.resource_group
+    network_security_group_name = azurerm_network_security_group.allow-global.name
+}
+
 resource "azurerm_network_security_rule" "public-ports" {
     name                        = "${var.name}-public-ports"
-    priority                    = 1004
+    priority                    = 1006
     direction                   = "Inbound"
     access                      = "Allow"
     protocol                    = "Tcp"

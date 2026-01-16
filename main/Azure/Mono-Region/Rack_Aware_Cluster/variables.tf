@@ -62,19 +62,28 @@ variable "redis_insight_package" {
 }
 
 variable "azure_access_key_id" {
-  description = "Azure Access Key ID (Application ID)"
+  description = "Azure Client ID (Application ID). Leave empty to use Azure CLI authentication."
+  default     = ""
 }
 
 variable "azure_tenant_id" {
-  description = "Azure Tenant ID"
+  description = "Azure Tenant ID. Leave empty to use Azure CLI authentication."
+  default     = ""
 }
 
 variable "azure_subscription_id" {
-  description = "Azure Subscription ID"
+  description = "Azure Subscription ID. Required for all authentication methods."
 }
 
 variable "azure_secret_key" {
-  description = "Azure Secret Key"
+  description = "Azure Client Secret. Leave empty to use Azure CLI authentication."
+  default     = ""
+}
+
+variable "use_cli_auth" {
+  description = "Use Azure CLI authentication instead of Service Principal"
+  type        = bool
+  default     = false
 }
 
 variable "ssh_public_key" {
@@ -120,6 +129,11 @@ variable "machine_type" {
   default = "Standard_D2s_v3"
 }
 
+variable "bastion_machine_type" {
+  description = "Instance type for bastion/client (memtier, Prometheus, Grafana)"
+  default = "Standard_D4s_v5"
+}
+
 variable "machine_image" {
   // Ubuntu 20.04 LTS
   default = "Canonical:0001-com-ubuntu-minimal-focal:minimal-20_04-lts-gen2:latest"
@@ -146,6 +160,12 @@ variable "rs_password" {
 // node3.cluster.<env>-<project_name>.demo-azure.redislabs.com
 variable "hosted_zone" {
   default = "demo-azure.redislabs.com"
+}
+
+variable "dns_resource_group" {
+  description = "Azure resource group containing the DNS zone (can be different from deployment resource group)"
+  type        = string
+  default     = ""
 }
 
 # ============================================
