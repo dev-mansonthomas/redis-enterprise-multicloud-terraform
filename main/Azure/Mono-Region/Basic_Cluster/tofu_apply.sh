@@ -4,7 +4,7 @@
 # This script loads credentials and tags from .env file and applies the configuration
 
 # Determine the project root directory
-# This script is located at: main/Azure/Mono-Region/Basic_Cluster/tofu_apply.sh
+# This script is located at: main/Azure/Cross-Region/Rack_Aware_Clusters/tofu_apply.sh
 # So we need to go up 4 levels to reach the project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
@@ -20,7 +20,7 @@ else
     exit 1
 fi
 
-# Determine cloud provider from current directory
+# Determine cloud provider and deployment type from current directory
 CURRENT_DIR=$(pwd)
 if [[ "$CURRENT_DIR" == *"/AWS/"* ]]; then
     CLOUD_PROVIDER="aws"
@@ -31,6 +31,12 @@ elif [[ "$CURRENT_DIR" == *"/Azure/"* ]]; then
 else
     echo "Error: Cannot determine cloud provider from current directory"
     exit 1
+fi
+
+# Detect if this is a Cross-Region deployment
+IS_CROSS_REGION=false
+if [[ "$CURRENT_DIR" == *"/Cross-Region/"* ]]; then
+    IS_CROSS_REGION=true
 fi
 
 # Check if required variables are set
@@ -325,9 +331,6 @@ case $CLOUD_PROVIDER in
         fi
 
         # Add Azure-specific configuration
-        if [ -n "$AZ_REGION_NAME" ]; then
-            VAR_ARGS="$VAR_ARGS -var=\"region_name=$AZ_REGION_NAME\""
-        fi
         if [ -n "$AZ_VOLUME_TYPE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"volume_type=$AZ_VOLUME_TYPE\""
         fi
@@ -345,6 +348,22 @@ case $CLOUD_PROVIDER in
         fi
         if [ -n "$AZ_DNS_RESOURCE_GROUP" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"dns_resource_group=$AZ_DNS_RESOURCE_GROUP\""
+        fi
+
+        # Region configuration depends on deployment type
+        if [ "$IS_CROSS_REGION" = true ]; then
+            # Cross-Region: use region_1_name and region_2_name
+            if [ -n "$AZ_REGION_NAME" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_1_name=$AZ_REGION_NAME\""
+            fi
+            if [ -n "$AZ_REGION_NAME_2" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_2_name=$AZ_REGION_NAME_2\""
+            fi
+        else
+            # Mono-Region: use region_name
+            if [ -n "$AZ_REGION_NAME" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_name=$AZ_REGION_NAME\""
+            fi
         fi
         ;;
 esac
@@ -364,6 +383,7 @@ echo "Deployment: ${DEPLOYMENT_NAME:-<not set>}"
 echo "Owner: $OWNER"
 echo "Skip Deletion: ${SKIP_DELETION:-yes}"
 echo "Redis Enterprise: $REDIS_ENTERPRISE_URL"
+echo "Flash Enabled: ${FLASH_ENABLED:-false}"
 echo "========================================="
 echo ""
 
@@ -375,13 +395,11 @@ echo "Full log will be saved to: $LOG_FILE"
 echo ""
 
 # Execute tofu apply with all variables
-# Filter verbose apt-get output but keep important lines
 eval "tofu apply $VAR_ARGS $AUTO_APPROVE_FLAG" 2>&1 | tee "$LOG_FILE" | grep -v -E '(^module\.[^(]+\(remote-exec\):.*%(\ \[|Working|Waiting|Get:|Fetched|Reading)|\(remote-exec\):.*kB/|^\s*$)' | grep -v -E '^\s+[0-9]+%'
 
 # Show completion message
 echo ""
 echo "========================================="
 echo "Log file saved to: $LOG_FILE"
-echo "To view with colors: less -R $LOG_FILE"
 echo "========================================="
 

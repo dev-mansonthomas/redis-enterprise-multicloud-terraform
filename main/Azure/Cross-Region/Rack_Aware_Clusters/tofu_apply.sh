@@ -20,7 +20,7 @@ else
     exit 1
 fi
 
-# Determine cloud provider from current directory
+# Determine cloud provider and deployment type from current directory
 CURRENT_DIR=$(pwd)
 if [[ "$CURRENT_DIR" == *"/AWS/"* ]]; then
     CLOUD_PROVIDER="aws"
@@ -31,6 +31,12 @@ elif [[ "$CURRENT_DIR" == *"/Azure/"* ]]; then
 else
     echo "Error: Cannot determine cloud provider from current directory"
     exit 1
+fi
+
+# Detect if this is a Cross-Region deployment
+IS_CROSS_REGION=false
+if [[ "$CURRENT_DIR" == *"/Cross-Region/"* ]]; then
+    IS_CROSS_REGION=true
 fi
 
 # Check if required variables are set
@@ -325,9 +331,6 @@ case $CLOUD_PROVIDER in
         fi
 
         # Add Azure-specific configuration
-        if [ -n "$AZ_REGION_NAME" ]; then
-            VAR_ARGS="$VAR_ARGS -var=\"region_name=$AZ_REGION_NAME\""
-        fi
         if [ -n "$AZ_VOLUME_TYPE" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"volume_type=$AZ_VOLUME_TYPE\""
         fi
@@ -345,6 +348,22 @@ case $CLOUD_PROVIDER in
         fi
         if [ -n "$AZ_DNS_RESOURCE_GROUP" ]; then
             VAR_ARGS="$VAR_ARGS -var=\"dns_resource_group=$AZ_DNS_RESOURCE_GROUP\""
+        fi
+
+        # Region configuration depends on deployment type
+        if [ "$IS_CROSS_REGION" = true ]; then
+            # Cross-Region: use region_1_name and region_2_name
+            if [ -n "$AZ_REGION_NAME" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_1_name=$AZ_REGION_NAME\""
+            fi
+            if [ -n "$AZ_REGION_NAME_2" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_2_name=$AZ_REGION_NAME_2\""
+            fi
+        else
+            # Mono-Region: use region_name
+            if [ -n "$AZ_REGION_NAME" ]; then
+                VAR_ARGS="$VAR_ARGS -var=\"region_name=$AZ_REGION_NAME\""
+            fi
         fi
         ;;
 esac

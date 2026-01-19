@@ -153,6 +153,11 @@ variable "machine_type" {
   default = "Standard_D2s_v3"
 }
 
+variable "bastion_machine_type" {
+  description = "Instance type for bastion/client (memtier, Prometheus, Grafana)"
+  default = "Standard_D4s_v5"
+}
+
 variable "machine_image" {
   // Ubuntu 20.04 LTS
   default = "Canonical:0001-com-ubuntu-minimal-focal:minimal-20_04-lts-gen2:latest"
