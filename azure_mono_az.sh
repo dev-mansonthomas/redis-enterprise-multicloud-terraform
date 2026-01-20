@@ -1,10 +1,10 @@
 #!/bin/bash
 # =============================================================================
-# AWS Mono-Region Rack-Aware Cluster deployment
-# Usage: ./aws_mono_region_rack_aware.sh [--destroy]
+# Azure Single AZ Cluster deployment
+# Usage: ./azure_mono_az.sh [--destroy]
 # =============================================================================
 
-CONFIG_DIR="main/AWS/Mono-Region/Rack_Aware_Cluster"
+CONFIG_DIR="main/Azure/Mono-Region/Basic_Cluster"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ACTION="apply"
 
@@ -13,14 +13,14 @@ if [[ "$1" == "--destroy" ]]; then
     ACTION="destroy"
 fi
 
-# Source common functions and AWS provider
+# Source common functions and Azure provider
 source "$PROJECT_ROOT/scripts/common.sh"
-source "$PROJECT_ROOT/scripts/providers/aws.sh"
+source "$PROJECT_ROOT/scripts/providers/azure.sh"
 
 if [[ "$ACTION" == "destroy" ]]; then
-    log_header "AWS Mono-Region Rack-Aware Cluster - DESTROY"
+    log_header "Azure Single AZ Cluster - DESTROY"
 else
-    log_header "AWS Mono-Region Rack-Aware Cluster"
+    log_header "Azure Single AZ Cluster"
 fi
 echo "Configuration: $CONFIG_DIR"
 
@@ -32,7 +32,7 @@ fi
 
 # Load environment and run pre-flight checks BEFORE cd
 load_env "$PROJECT_ROOT" || exit 1
-preflight_aws || exit 1
+preflight_azure || exit 1
 
 # Navigate to the configuration directory
 cd "$CONFIG_DIR" || exit 1

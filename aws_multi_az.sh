@@ -1,10 +1,10 @@
 #!/bin/bash
 # =============================================================================
-# GCP GKE Cross-Region Rack-Aware Clusters deployment
-# Usage: ./gcp_gke_cross_region_rack_aware.sh [--destroy]
+# AWS Multi-AZ Cluster (Rack-Aware) deployment
+# Usage: ./aws_multi_az.sh [--destroy]
 # =============================================================================
 
-CONFIG_DIR="main/GCP/GKE/Cross-Region/Rack_Aware_Clusters"
+CONFIG_DIR="main/AWS/Mono-Region/Rack_Aware_Cluster"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ACTION="apply"
 
@@ -13,14 +13,14 @@ if [[ "$1" == "--destroy" ]]; then
     ACTION="destroy"
 fi
 
-# Source common functions and GCP provider
+# Source common functions and AWS provider
 source "$PROJECT_ROOT/scripts/common.sh"
-source "$PROJECT_ROOT/scripts/providers/gcp.sh"
+source "$PROJECT_ROOT/scripts/providers/aws.sh"
 
 if [[ "$ACTION" == "destroy" ]]; then
-    log_header "GCP GKE Cross-Region Rack-Aware Clusters - DESTROY"
+    log_header "AWS Multi-AZ Cluster (Rack-Aware) - DESTROY"
 else
-    log_header "GCP GKE Cross-Region Rack-Aware Clusters"
+    log_header "AWS Multi-AZ Cluster (Rack-Aware)"
 fi
 echo "Configuration: $CONFIG_DIR"
 
@@ -32,7 +32,7 @@ fi
 
 # Load environment and run pre-flight checks BEFORE cd
 load_env "$PROJECT_ROOT" || exit 1
-preflight_gcp || exit 1
+preflight_aws || exit 1
 
 # Navigate to the configuration directory
 cd "$CONFIG_DIR" || exit 1

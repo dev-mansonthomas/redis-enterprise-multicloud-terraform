@@ -1,185 +1,233 @@
 #!/bin/bash
 
-# Verification script to check if tagging and credentials setup is complete
+# Verification script to check if environment setup is complete
 
 echo "========================================="
-echo "Verifying Tagging and Credentials Setup"
+echo "Redis Enterprise Multicloud - Setup Check"
 echo "========================================="
 echo ""
 
 ERRORS=0
 WARNINGS=0
+STEP=1
 
-# Check if .env.sample exists
-echo "1. Checking .env.sample..."
-if [ -f ".env.sample" ]; then
-    echo "   ✓ .env.sample exists"
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+ok() { echo -e "   ${GREEN}✓${NC} $1"; }
+warn() { echo -e "   ${YELLOW}⚠${NC} $1"; WARNINGS=$((WARNINGS + 1)); }
+fail() { echo -e "   ${RED}✗${NC} $1"; ERRORS=$((ERRORS + 1)); }
+info() { echo -e "   ${BLUE}ℹ${NC} $1"; }
+
+# ===========================================
+# 1. Required CLI Tools
+# ===========================================
+echo "${STEP}. Checking required CLI tools..."
+STEP=$((STEP + 1))
+
+# OpenTofu/Terraform
+if command -v tofu &> /dev/null; then
+    ok "tofu installed: $(tofu version | head -1)"
+elif command -v terraform &> /dev/null; then
+    ok "terraform installed: $(terraform version | head -1)"
 else
-    echo "   ✗ .env.sample not found"
-    ERRORS=$((ERRORS + 1))
+    fail "tofu or terraform not found"
+    info "Install: https://opentofu.org/docs/intro/install/"
 fi
 
-# Check if .env exists
-echo "2. Checking .env..."
-if [ -f ".env" ]; then
-    echo "   ✓ .env exists"
+# jq (required for version detection)
+if command -v jq &> /dev/null; then
+    ok "jq installed: $(jq --version)"
+else
+    fail "jq not found (required for Redis version detection)"
+    info "Install: brew install jq (macOS) or apt install jq (Linux)"
+fi
 
-    # Check if OWNER is set
+# curl
+if command -v curl &> /dev/null; then
+    ok "curl installed"
+else
+    fail "curl not found"
+fi
+
+# ===========================================
+# 2. Cloud Provider CLIs
+# ===========================================
+echo ""
+echo "${STEP}. Checking cloud provider CLIs..."
+STEP=$((STEP + 1))
+
+# AWS CLI
+if command -v aws &> /dev/null; then
+    ok "aws CLI installed: $(aws --version 2>&1 | cut -d' ' -f1)"
+else
+    warn "aws CLI not installed (required for AWS deployments)"
+    info "Install: brew install awscli (macOS)"
+fi
+
+# Google Cloud SDK
+if command -v gcloud &> /dev/null; then
+    ok "gcloud CLI installed: $(gcloud version 2>/dev/null | head -1 | cut -d' ' -f4)"
+else
+    warn "gcloud CLI not installed (required for GCP deployments)"
+    info "Install: brew install google-cloud-sdk (macOS)"
+fi
+
+# Azure CLI
+if command -v az &> /dev/null; then
+    ok "az CLI installed: $(az version 2>/dev/null | jq -r '.["azure-cli"]' 2>/dev/null || echo "unknown")"
+else
+    warn "az CLI not installed (required for Azure deployments)"
+    info "Install: brew install azure-cli (macOS)"
+fi
+
+# ===========================================
+# 3. Environment File
+# ===========================================
+echo ""
+echo "${STEP}. Checking .env configuration..."
+STEP=$((STEP + 1))
+
+if [ ! -f ".env" ]; then
+    fail ".env file not found"
+    info "Create from template: cp .env.sample .env"
+else
+    ok ".env file exists"
     source .env
-    if [ -n "$OWNER" ]; then
-        echo "   ✓ OWNER is set: $OWNER"
-    else
-        echo "   ✗ OWNER is not set in .env"
-        ERRORS=$((ERRORS + 1))
-    fi
 
-    # Check Redis Enterprise admin credentials
-    if [ -n "$REDIS_LOGIN" ]; then
-        echo "   ✓ REDIS_LOGIN is set: $REDIS_LOGIN"
-    else
-        echo "   ✗ REDIS_LOGIN is not set in .env"
-        ERRORS=$((ERRORS + 1))
-    fi
+    # Required variables
+    [ -n "$OWNER" ] && ok "OWNER is set: $OWNER" || fail "OWNER is not set"
+    [ -n "$REDIS_LOGIN" ] && ok "REDIS_LOGIN is set" || fail "REDIS_LOGIN is not set"
+    [ -n "$REDIS_PWD" ] && ok "REDIS_PWD is set" || fail "REDIS_PWD is not set"
+    [ -n "$REDIS_DOWNLOAD_BASE_URL" ] && ok "REDIS_DOWNLOAD_BASE_URL is set" || fail "REDIS_DOWNLOAD_BASE_URL is not set"
+    [ -n "$REDIS_OS" ] && ok "REDIS_OS is set: $REDIS_OS" || fail "REDIS_OS is not set"
+    [ -n "$REDIS_ARCHITECTURE" ] && ok "REDIS_ARCHITECTURE is set: $REDIS_ARCHITECTURE" || fail "REDIS_ARCHITECTURE is not set"
 
-    if [ -n "$REDIS_PWD" ]; then
-        echo "   ✓ REDIS_PWD is set"
-    else
-        echo "   ✗ REDIS_PWD is not set in .env"
-        ERRORS=$((ERRORS + 1))
-    fi
-
-    # Check Redis download base URL
-    if [ -n "$REDIS_DOWNLOAD_BASE_URL" ]; then
-        echo "   ✓ REDIS_DOWNLOAD_BASE_URL is set"
-    else
-        echo "   ✗ REDIS_DOWNLOAD_BASE_URL is not set in .env"
-        ERRORS=$((ERRORS + 1))
-    fi
-
-    # Check Redis configuration
-    if [ -n "$REDIS_OS" ]; then
-        echo "   ✓ REDIS_OS is set: $REDIS_OS"
-    else
-        echo "   ✗ REDIS_OS is not set in .env"
-        ERRORS=$((ERRORS + 1))
-    fi
-
-    if [ -n "$REDIS_ARCHITECTURE" ]; then
-        echo "   ✓ REDIS_ARCHITECTURE is set: $REDIS_ARCHITECTURE"
-    else
-        echo "   ✗ REDIS_ARCHITECTURE is not set in .env"
-        ERRORS=$((ERRORS + 1))
-    fi
-
-    # Check if Redis version is set or can be auto-detected
+    # Redis version (optional - auto-detected)
     if [ -n "$REDIS_VERSION" ] && [ -n "$REDIS_BUILD" ]; then
-        echo "   ✓ REDIS_VERSION is set: $REDIS_VERSION-$REDIS_BUILD"
-    elif [ -n "$REDIS_ENTERPRISE_URL" ]; then
-        echo "   ✓ REDIS_ENTERPRISE_URL is set (version will be auto-detected)"
+        ok "REDIS_VERSION is set: $REDIS_VERSION-$REDIS_BUILD"
     else
-        echo "   ⚠ Redis version not set (will be auto-detected from redis.io)"
-        WARNINGS=$((WARNINGS + 1))
+        info "Redis version will be auto-detected"
     fi
-else
-    echo "   ⚠ .env not found (you need to create it from .env.sample)"
-    WARNINGS=$((WARNINGS + 1))
 fi
 
-# Check if .env is in .gitignore
-echo "3. Checking .gitignore..."
+# ===========================================
+# 4. Credential Files
+# ===========================================
+echo ""
+echo "${STEP}. Checking credential files..."
+STEP=$((STEP + 1))
+
+if [ -f ".env" ]; then
+    source .env
+
+    # AWS credentials
+    if [ -n "$AWS_CREDENTIALS_FILE" ]; then
+        eval AWS_CRED_PATH="$AWS_CREDENTIALS_FILE"
+        if [ -f "$AWS_CRED_PATH" ]; then
+            ok "AWS credentials file exists: $AWS_CREDENTIALS_FILE"
+        else
+            warn "AWS credentials file not found: $AWS_CREDENTIALS_FILE"
+        fi
+    else
+        info "AWS_CREDENTIALS_FILE not configured"
+    fi
+
+    # GCP credentials
+    if [ -n "$GCP_CREDENTIALS_FILE" ]; then
+        eval GCP_CRED_PATH="$GCP_CREDENTIALS_FILE"
+        if [ -f "$GCP_CRED_PATH" ]; then
+            ok "GCP credentials file exists: $GCP_CREDENTIALS_FILE"
+        else
+            warn "GCP credentials file not found: $GCP_CREDENTIALS_FILE"
+        fi
+    else
+        info "GCP_CREDENTIALS_FILE not configured"
+    fi
+
+    # Azure credentials
+    if [ -n "$AZURE_CREDENTIALS_FILE" ]; then
+        eval AZ_CRED_PATH="$AZURE_CREDENTIALS_FILE"
+        if [ -f "$AZ_CRED_PATH" ]; then
+            ok "Azure credentials file exists: $AZURE_CREDENTIALS_FILE"
+        else
+            warn "Azure credentials file not found: $AZURE_CREDENTIALS_FILE"
+        fi
+    else
+        info "AZURE_CREDENTIALS_FILE not configured"
+    fi
+fi
+
+# ===========================================
+# 5. SSH Keys
+# ===========================================
+echo ""
+echo "${STEP}. Checking SSH keys..."
+STEP=$((STEP + 1))
+
+if [ -f ".env" ]; then
+    source .env
+
+    # Main SSH key
+    if [ -n "$SSH_PUBLIC_KEY" ]; then
+        eval SSH_PUB_PATH="$SSH_PUBLIC_KEY"
+        if [ -f "$SSH_PUB_PATH" ]; then
+            ok "SSH public key exists: $SSH_PUBLIC_KEY"
+        else
+            fail "SSH public key not found: $SSH_PUBLIC_KEY"
+        fi
+    fi
+
+    # Azure-specific RSA key
+    if [ -n "$AZURE_SSH_PUBLIC_KEY" ]; then
+        eval AZ_SSH_PATH="$AZURE_SSH_PUBLIC_KEY"
+        if [ -f "$AZ_SSH_PATH" ]; then
+            ok "Azure RSA key exists: $AZURE_SSH_PUBLIC_KEY"
+        else
+            warn "Azure RSA key not found: $AZURE_SSH_PUBLIC_KEY"
+            info "Azure requires RSA keys. Generate: ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa"
+        fi
+    else
+        info "AZURE_SSH_PUBLIC_KEY not configured (will use SSH_PUBLIC_KEY)"
+    fi
+fi
+
+# ===========================================
+# 6. .gitignore Check
+# ===========================================
+echo ""
+echo "${STEP}. Checking security..."
+STEP=$((STEP + 1))
+
 if grep -q "^\.env$" .gitignore 2>/dev/null; then
-    echo "   ✓ .env is in .gitignore"
+    ok ".env is in .gitignore"
 else
-    echo "   ✗ .env is not in .gitignore"
-    ERRORS=$((ERRORS + 1))
+    fail ".env is NOT in .gitignore (security risk!)"
 fi
 
-# Check if variables.tf files have owner and skip_deletion variables
-echo "4. Checking variables.tf files..."
-VARIABLES_FILES=$(find main -name "variables.tf" -type f | wc -l)
-VARIABLES_WITH_OWNER=$(find main -name "variables.tf" -type f -exec grep -l "variable \"owner\"" {} \; | wc -l)
-VARIABLES_WITH_SKIP=$(find main -name "variables.tf" -type f -exec grep -l "variable \"skip_deletion\"" {} \; | wc -l)
-
-echo "   Found $VARIABLES_FILES variables.tf files"
-echo "   $VARIABLES_WITH_OWNER have 'owner' variable"
-echo "   $VARIABLES_WITH_SKIP have 'skip_deletion' variable"
-
-if [ "$VARIABLES_FILES" -eq "$VARIABLES_WITH_OWNER" ] && [ "$VARIABLES_FILES" -eq "$VARIABLES_WITH_SKIP" ]; then
-    echo "   ✓ All variables.tf files have required variables"
-else
-    echo "   ✗ Some variables.tf files are missing required variables"
-    ERRORS=$((ERRORS + 1))
-fi
-
-# Check if .tf.json files have locals block
-echo "5. Checking .tf.json configuration files..."
-TF_JSON_FILES=$(find main -name "*.tf.json" -type f | wc -l)
-TF_JSON_WITH_LOCALS=$(find main -name "*.tf.json" -type f -exec grep -l "\"locals\"" {} \; | wc -l)
-
-echo "   Found $TF_JSON_FILES .tf.json files"
-echo "   $TF_JSON_WITH_LOCALS have 'locals' block"
-
-if [ "$TF_JSON_FILES" -eq "$TF_JSON_WITH_LOCALS" ]; then
-    echo "   ✓ All .tf.json files have locals block"
-else
-    echo "   ⚠ Some .tf.json files might be missing locals block"
-    WARNINGS=$((WARNINGS + 1))
-fi
-
-# Check if deployment scripts exist
-echo "6. Checking deployment scripts..."
-DIRS_WITH_VARIABLES=$(find main -name "variables.tf" -type f -exec dirname {} \;)
-MISSING_SCRIPTS=0
-
-for dir in $DIRS_WITH_VARIABLES; do
-    if [ ! -f "$dir/tofu_apply.sh" ] || [ ! -f "$dir/tofu_destroy.sh" ]; then
-        echo "   ✗ Missing scripts in: $dir"
-        MISSING_SCRIPTS=$((MISSING_SCRIPTS + 1))
-    fi
-done
-
-if [ "$MISSING_SCRIPTS" -eq 0 ]; then
-    echo "   ✓ All configuration directories have deployment scripts"
-else
-    echo "   ✗ $MISSING_SCRIPTS directories are missing deployment scripts"
-    ERRORS=$((ERRORS + 1))
-fi
-
-# Check if template scripts exist
-echo "7. Checking template scripts..."
-if [ -f "scripts/tofu_apply_template.sh" ] && [ -f "scripts/tofu_destroy_template.sh" ]; then
-    echo "   ✓ Template scripts exist"
-else
-    echo "   ✗ Template scripts not found in scripts/ directory"
-    ERRORS=$((ERRORS + 1))
-fi
-
-# Check if documentation exists
-echo "8. Checking documentation..."
-if [ -f "TAGGING_AND_CREDENTIALS.md" ]; then
-    echo "   ✓ TAGGING_AND_CREDENTIALS.md exists"
-else
-    echo "   ✗ TAGGING_AND_CREDENTIALS.md not found"
-    ERRORS=$((ERRORS + 1))
-fi
-
+# ===========================================
 # Summary
+# ===========================================
 echo ""
 echo "========================================="
-echo "Verification Summary"
+echo "Summary"
 echo "========================================="
-echo "Errors: $ERRORS"
-echo "Warnings: $WARNINGS"
+echo -e "Errors:   ${RED}$ERRORS${NC}"
+echo -e "Warnings: ${YELLOW}$WARNINGS${NC}"
 echo ""
 
 if [ "$ERRORS" -eq 0 ] && [ "$WARNINGS" -eq 0 ]; then
-    echo "✓ All checks passed! Setup is complete."
+    echo -e "${GREEN}✓ All checks passed! Ready to deploy.${NC}"
     exit 0
 elif [ "$ERRORS" -eq 0 ]; then
-    echo "⚠ Setup is mostly complete, but there are some warnings."
+    echo -e "${YELLOW}⚠ Setup mostly complete. Review warnings above.${NC}"
     exit 0
 else
-    echo "✗ Setup is incomplete. Please fix the errors above."
+    echo -e "${RED}✗ Setup incomplete. Fix the errors above.${NC}"
     exit 1
 fi
 

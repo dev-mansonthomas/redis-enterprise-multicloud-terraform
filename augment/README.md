@@ -1,133 +1,152 @@
-# Documentation Directory
+# Augment Context - Technical Reference
 
-This directory contains detailed documentation and changelogs for the TerraMine project.
+This directory contains technical documentation for AI assistants (like Augment) to quickly understand the project architecture.
 
-## 📚 Documentation Files
+## Project Overview
 
-### User Guides
+**Redis Enterprise Multicloud Terraform** - Deploy Redis Enterprise clusters on AWS, GCP, and Azure with a single command.
 
-- **[DEPLOYMENT_SHORTCUTS.md](DEPLOYMENT_SHORTCUTS.md)** - Comprehensive guide on using quick deployment scripts
-  - Interactive menu usage
-  - Script naming patterns
-  - Usage examples for all cloud providers
-  - How the scripts work internally
+```
+./aws_multi_az.sh           # Deploy
+./aws_multi_az.sh --destroy # Destroy
+```
 
-- **[SHORTCUTS_REFERENCE.md](SHORTCUTS_REFERENCE.md)** - Quick reference card for all deployment shortcuts
-  - All 18 available scripts listed
-  - Quick command reference
-  - Prerequisites checklist
-  - Tips and troubleshooting
+## Project Structure
 
-- **[TAGGING_AND_CREDENTIALS.md](TAGGING_AND_CREDENTIALS.md)** - Complete guide on tagging and credentials management
-  - Environment configuration setup
-  - Cloud provider credentials configuration (AWS, GCP, Azure)
-  - Tagging requirements and compliance
-  - Security best practices
-  - Troubleshooting guide
+```
+.
+├── .env                    # User configuration (from .env.sample)
+├── *.sh                    # Deployment scripts (aws_*, gcp_*, azure_*)
+├── scripts/
+│   ├── common.sh           # Shared functions for all scripts
+│   ├── providers/          # Cloud-specific setup (aws.sh, gcp.sh, azure.sh)
+│   ├── tofu_apply_template.sh
+│   ├── tofu_destroy_template.sh
+│   ├── get_latest_redis_version.sh
+│   └── verify_setup.sh
+├── main/                   # Terraform configurations
+│   ├── AWS/
+│   │   ├── Mono-Region/    # Single AZ deployment
+│   │   └── Cross-Region/   # Multi-region Active-Active
+│   ├── GCP/
+│   │   ├── Mono-Region/
+│   │   └── Cross-Region/
+│   └── Azure/
+│       ├── Mono-Region/
+│       └── Cross-Region/
+└── modules/                # Reusable Terraform modules
+    ├── aws/
+    │   ├── bastion/        # Bastion host with tools
+    │   ├── network/        # VPC, subnets, security groups
+    │   ├── re/             # Redis Enterprise nodes
+    │   ├── ns-public/      # Route53 DNS
+    │   └── peering/        # VPC peering for cross-region
+    ├── gcp/
+    │   ├── bastion/
+    │   ├── network/
+    │   ├── re/
+    │   ├── ns-public/
+    │   └── peering/
+    ├── azure/
+    │   ├── bastion/
+    │   ├── network/
+    │   ├── re/
+    │   ├── ns-public/
+    │   └── peering/
+    └── common/
+        └── cluster_dns/    # DNS record creation
+```
 
-### Technical Documentation
+## Key Configuration Files
 
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
-  - Overview of all changes made to the project
-  - File-by-file modification summary
-  - Tag flow and architecture
-  - Module updates across AWS, GCP, and Azure
-  - Compliance verification
+### `.env` (from `.env.sample`)
 
-## 📝 Changelogs
+```bash
+# Identity
+OWNER=firstname_lastname
 
-### [CHANGELOG_README_MIGRATION.md](CHANGELOG_README_MIGRATION.md)
-**Date:** 2026-01-06
+# Redis Enterprise
+REDIS_DOWNLOAD_BASE_URL=https://s3.amazonaws.com/redis-enterprise-software-downloads
+REDIS_OS=jammy                    # jammy, focal, rhel8, rhel9
+REDIS_ARCHITECTURE=amd64          # amd64, arm64
+REDIS_VERSION=                    # Auto-detected if empty
+REDIS_BUILD=                      # Auto-detected if empty
 
-Migration of the main documentation from AsciiDoc (`README.adoc`) to Markdown (`README.md`).
+# Cluster
+CLUSTER_SIZE=3
+DEPLOYMENT_NAME=my-cluster
 
-**Key Changes:**
-- Created comprehensive README.md combining multiple documentation sources
-- Updated `.env.sample` to remove direct credentials and use only file references
-- Updated all documentation cross-references
-- Improved security by removing default credential values
+# SSH Keys
+SSH_PUBLIC_KEY=~/.ssh/id_ed25519.pub
+SSH_PRIVATE_KEY=~/.ssh/id_ed25519
+AZURE_SSH_PUBLIC_KEY=~/.ssh/id_rsa.pub    # Azure requires RSA
+AZURE_SSH_PRIVATE_KEY=~/.ssh/id_rsa
 
-### [CHANGELOG_REDIS_VERSION_AUTOMATION.md](CHANGELOG_REDIS_VERSION_AUTOMATION.md)
-**Date:** 2026-01-07
+# Credentials (paths to files)
+AWS_CREDENTIALS_FILE=~/.private/aws.sh
+GCP_CREDENTIALS_FILE=~/.private/gcp-sa.json
+AZURE_CREDENTIALS_FILE=~/.private/azure.sh
+```
 
-Implementation of automatic Redis Enterprise version detection system.
+### Terraform Configuration Pattern
 
-**Key Changes:**
-- Created `scripts/get_latest_redis_version.sh` for automatic version detection
-- Added `REDIS_VERSION`, `REDIS_BUILD`, `REDIS_OS`, and `REDIS_ARCHITECTURE` variables
-- Updated deployment scripts to auto-detect and construct Redis download URLs
-- Support for multiple OS distributions (Ubuntu, RHEL) and architectures (amd64, arm64)
-- Future-proof for new Redis Enterprise versions
+Each deployment in `main/` follows this pattern:
+- `*.tf.json` - Main configuration (modules, resources)
+- `variables.tf` - Variable declarations
+- `tofu_apply.sh` - Sources template and runs apply
+- `tofu_destroy.sh` - Sources template and runs destroy
 
-**Related Documentation:**
-- [ARCHITECTURE_REDIS_VERSION_AUTOMATION.md](ARCHITECTURE_REDIS_VERSION_AUTOMATION.md) - System architecture
-- [TESTING_REDIS_VERSION_AUTOMATION.md](TESTING_REDIS_VERSION_AUTOMATION.md) - Testing documentation
-- [SUMMARY_REDIS_VERSION_AUTOMATION.md](SUMMARY_REDIS_VERSION_AUTOMATION.md) - Implementation summary
-- [scripts/README.md](../scripts/README.md) - Scripts documentation
+## Script Flow
 
-### [CHANGELOG_REDIS_URL.md](CHANGELOG_REDIS_URL.md)
-**Date:** 2026-01-06
+```
+./aws_multi_az.sh
+    │
+    ├── source scripts/common.sh      # load_env(), log functions
+    ├── source scripts/providers/aws.sh
+    │
+    ├── load_env()                    # Load .env file
+    │
+    ├── Auto-detect Redis version (if not set)
+    │   └── scripts/get_latest_redis_version.sh
+    │       └── Scrapes redis.io for latest version
+    │
+    ├── Construct REDIS_ENTERPRISE_URL
+    │   └── ${BASE_URL}/${VERSION}/redislabs-${VERSION}-${BUILD}-${OS}-${ARCH}.tar
+    │
+    ├── Setup cloud credentials
+    │   └── source $AWS_CREDENTIALS_FILE
+    │
+    └── cd main/AWS/Mono-Region/Rack_Aware_Cluster
+        └── tofu apply -var="rs_release=$REDIS_ENTERPRISE_URL" ...
+```
 
-Centralization of Redis Enterprise download URL configuration.
+## Tagging System
 
-**Key Changes:**
-- Added `REDIS_ENTERPRISE_URL` to `.env.sample`
-- Updated deployment scripts to validate and export the URL
-- Removed hardcoded default values from all `variables.tf` files
-- Updated documentation and verification scripts
+All resources are tagged with:
+- `owner` - From `.env` OWNER variable
+- `skip_deletion` - Prevents auto-cleanup (default: "yes")
 
-### [CHANGELOG_DEPLOYMENT_SHORTCUTS.md](CHANGELOG_DEPLOYMENT_SHORTCUTS.md)
-**Date:** 2026-01-06
+Tags flow: `.env` → deployment script → Terraform variables → module resources
 
-Implementation of quick deployment shortcuts for all configurations.
+## Important Technical Details
 
-**Key Changes:**
-- Created 18 deployment shortcut scripts (AWS, GCP, Azure, GKE, ACRE)
-- Implemented interactive menu (`deploy.sh`)
-- Added comprehensive documentation
-- Enabled deployment from project root without navigation
+### Azure SSH Key Limitation
+Azure does NOT support ed25519 keys. Two separate SSH key variables exist:
+- `SSH_PUBLIC_KEY` / `SSH_PRIVATE_KEY` - For AWS & GCP (ed25519 OK)
+- `AZURE_SSH_PUBLIC_KEY` / `AZURE_SSH_PRIVATE_KEY` - For Azure (RSA required)
 
-### [CHANGELOG_TAGGING.md](CHANGELOG_TAGGING.md)
-**Date:** 2026-01-06
+### Redis Version Auto-Detection
+`scripts/get_latest_redis_version.sh` scrapes redis.io release notes to find the latest version. Falls back to manual specification in `.env`.
 
-Implementation of automated tagging and credentials management system.
+### DNS Configuration
+Each cloud provider has its own hosted zone:
+- AWS: Route53 (`AWS_HOSTED_ZONE`)
+- GCP: Cloud DNS (`GCP_DOMAIN_NAME`)
+- Azure: Azure DNS (`AZ_HOSTED_ZONE` + `AZ_DNS_RESOURCE_GROUP`)
 
-**Key Changes:**
-- Created `.env.sample` template for environment configuration
-- Added `owner` and `skip_deletion` variables to all configurations
-- Updated all modules to support resource tagging
-- Created generic deployment scripts with credential management
-- Implemented verification script (`verify_setup.sh`)
+FQDN pattern: `<DEPLOYMENT_NAME>.<HOSTED_ZONE>`
 
-## 🔗 Quick Links
+## Architecture Documentation
 
-- [Main README](../README.md) - Project overview and quick start guide
-- [Verification Script](../scripts/verify_setup.sh) - Setup verification tool
-- [Deployment Menu](../deploy.sh) - Interactive deployment menu
-
-## 📖 How to Use This Documentation
-
-1. **Getting Started**: Start with the [main README](../README.md)
-2. **Setup**: Follow [TAGGING_AND_CREDENTIALS.md](TAGGING_AND_CREDENTIALS.md)
-3. **Deployment**: Use [DEPLOYMENT_SHORTCUTS.md](DEPLOYMENT_SHORTCUTS.md) or [SHORTCUTS_REFERENCE.md](SHORTCUTS_REFERENCE.md)
-4. **Technical Details**: Refer to [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)
-5. **Change History**: Check the relevant CHANGELOG files
-
-## 🎯 Documentation Maintenance
-
-This directory is maintained to keep the project root clean while providing comprehensive documentation for users and contributors.
-
-**Guidelines:**
-- User-facing documentation goes in the main README.md
-- Detailed guides and references go in this directory
-- Changelogs document all significant changes
-- Technical implementation details are preserved for reference
-
-## 📞 Support
-
-For questions or issues:
-1. Check the relevant documentation file
-2. Review the changelogs for recent changes
-3. Run `./scripts/verify_setup.sh` to diagnose setup issues
-4. Consult the [main README](../README.md) for general guidance
+See [ARCHITECTURE_REDIS_VERSION_AUTOMATION.md](ARCHITECTURE_REDIS_VERSION_AUTOMATION.md) for detailed version detection system architecture.
 

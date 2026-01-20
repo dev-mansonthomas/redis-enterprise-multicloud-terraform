@@ -1,10 +1,10 @@
 #!/bin/bash
 # =============================================================================
-# GCP GKE Cross-Region Basic Clusters deployment
-# Usage: ./gcp_gke_cross_region_basic.sh [--destroy]
+# Azure Multi-AZ Cluster (Rack-Aware) deployment
+# Usage: ./azure_multi_az.sh [--destroy]
 # =============================================================================
 
-CONFIG_DIR="main/GCP/GKE/Cross-Region/Basic_Clusters"
+CONFIG_DIR="main/Azure/Mono-Region/Rack_Aware_Cluster"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ACTION="apply"
 
@@ -13,14 +13,14 @@ if [[ "$1" == "--destroy" ]]; then
     ACTION="destroy"
 fi
 
-# Source common functions and GCP provider
+# Source common functions and Azure provider
 source "$PROJECT_ROOT/scripts/common.sh"
-source "$PROJECT_ROOT/scripts/providers/gcp.sh"
+source "$PROJECT_ROOT/scripts/providers/azure.sh"
 
 if [[ "$ACTION" == "destroy" ]]; then
-    log_header "GCP GKE Cross-Region Basic Clusters - DESTROY"
+    log_header "Azure Multi-AZ Cluster (Rack-Aware) - DESTROY"
 else
-    log_header "GCP GKE Cross-Region Basic Clusters"
+    log_header "Azure Multi-AZ Cluster (Rack-Aware)"
 fi
 echo "Configuration: $CONFIG_DIR"
 
@@ -32,7 +32,7 @@ fi
 
 # Load environment and run pre-flight checks BEFORE cd
 load_env "$PROJECT_ROOT" || exit 1
-preflight_gcp || exit 1
+preflight_azure || exit 1
 
 # Navigate to the configuration directory
 cd "$CONFIG_DIR" || exit 1

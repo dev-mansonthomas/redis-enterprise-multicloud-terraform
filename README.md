@@ -1,447 +1,305 @@
-# TerraMine
+# Redis Enterprise Multicloud with Terraform
 
-[![GitHub contributors](https://img.shields.io/github/contributors/dev-mansonthomas/redis-enterprise-multicloud-terraform)](https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/graphs/contributors)
-[![Fork](https://img.shields.io/github/forks/dev-mansonthomas/redis-enterprise-multicloud-terraform)](https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/network/members)
-[![GitHub Repo stars](https://img.shields.io/github/stars/dev-mansonthomas/redis-enterprise-multicloud-terraform)](https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/stargazers)
-[![GitHub watchers](https://img.shields.io/github/watchers/dev-mansonthomas/redis-enterprise-multicloud-terraform)](https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/watchers)
-[![GitHub issues](https://img.shields.io/github/issues/dev-mansonthomas/redis-enterprise-multicloud-terraform)](https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/issues)
-[![License](https://img.shields.io/github/license/dev-mansonthomas/redis-enterprise-multicloud-terraform)](https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/blob/main/LICENSE)
+<p align="center">
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis"/>
+  <img src="https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white" alt="Terraform"/>
+  <img src="https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazon-aws&logoColor=white" alt="AWS"/>
+  <img src="https://img.shields.io/badge/Google_Cloud-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white" alt="GCP"/>
+  <img src="https://img.shields.io/badge/Microsoft_Azure-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white" alt="Azure"/>
+</p>
+
+<p align="center">
+  <a href="https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/graphs/contributors"><img src="https://img.shields.io/github/contributors/dev-mansonthomas/redis-enterprise-multicloud-terraform.svg" alt="Contributors"/></a>
+  <a href="https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/network/members"><img src="https://img.shields.io/github/forks/dev-mansonthomas/redis-enterprise-multicloud-terraform.svg" alt="Forks"/></a>
+  <a href="https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/stargazers"><img src="https://img.shields.io/github/stars/dev-mansonthomas/redis-enterprise-multicloud-terraform.svg" alt="Stars"/></a>
+  <a href="https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/watchers"><img src="https://img.shields.io/github/watchers/dev-mansonthomas/redis-enterprise-multicloud-terraform.svg" alt="Watchers"/></a>
+  <a href="https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/issues"><img src="https://img.shields.io/github/issues/dev-mansonthomas/redis-enterprise-multicloud-terraform.svg" alt="Issues"/></a>
+  <a href="https://github.com/dev-mansonthomas/redis-enterprise-multicloud-terraform/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg" alt="License"/></a>
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#features">Features</a> •
+  <a href="#configuration">Configuration</a> •
+  <a href="#scripts">Scripts</a> •
+  <a href="#appendices">Appendices</a>
+</p>
 
 ---
 
-TerraMine is a set of Terraform/OpenTofu templates designed to provision different kinds of Redis Enterprise Clusters across multiple cloud vendors.
+## Overview
 
-**Currently supported cloud providers:**
-- Amazon Web Services (AWS)
-- Google Cloud Platform (GCP)
-- Microsoft Azure
+**This project offers a simple and efficient way to provisioning/destroy of Redis Enterprise Clusters on AWS/Azure/GCP with one command line.**
 
-**Deployment options:**
-- Virtual Machines (VMs)
-- Managed Services (e.g., Azure Cache for Redis)
-- Kubernetes (e.g., GKE)
+```bash
+./aws_multi_az.sh                  # Deploy
+./aws_multi_az.sh --destroy        # Destroy
+```
 
-## 📋 Table of Contents
+## Features
 
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Cloud Provider Setup](#cloud-provider-setup)
-- [Redis Enterprise Architecture](#redis-enterprise-architecture)
-- [Available Configurations](#available-configurations)
-- [Deployment Methods](#deployment-methods)
-- [Advanced Options](#advanced-options)
-- [Documentation](#documentation)
+| Feature | Description |
+|---------|-------------|
+| 🔄 **Auto-detection** | Latest Redis Enterprise version auto-detected & downloaded |
+| 🖥️ **VMs** | Deploy on virtual machines across all 3 cloud providers |
+| 🔧 **Bastion VM** | Includes memtier_benchmark, Grafana, Prometheus, RedisInsight |
+| 📊 **Cluster Size** | 3 to 35 nodes |
+| ⚡ **Redis Flex** | Redis Flex support with local NVMe storage |
+| 🛡️ **Rack-zone Awareness** | RackZone awareness enabled on Redis Enterprise |
+| 💰 **Cost Profiles** | Budget or Performance configurations |
+| 🌍 **Topologies** | Mono-AZ, Multi-AZ, Cross-Region for Active-Active DB |
+| 🔗 **Active-Active** | Create CRDB spanning 6 clusters (2 per cloud provider) |
+| 🏷️ **Tagging** | All resources tagged with `owner` and `skip_deletion` |
+| 📝 **Single Config** | One `.env` file for all deployments |
 
-## Prerequisites
+---
 
-- Install [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli) or [OpenTofu](https://opentofu.org/docs/intro/install/)
-- Create SSH key files:
-  - For AWS/GCP: RSA or ed25519 (`~/.ssh/id_ed25519` or `~/.ssh/id_rsa`)
-  - For Azure: **RSA only** (`~/.ssh/id_rsa`) - Azure does NOT support ed25519
-- Cloud provider credentials (see [Cloud Provider Setup](#cloud-provider-setup))
+## Quick Start
 
-## 🚀 Quick Start
-
-### Step 1: Configure Your Environment
-
-Create your `.env` file from the template:
+### 1. Copy and configure `.env`
 
 ```bash
 cp .env.sample .env
+# Edit .env with your values, more details in this readme.md
 ```
 
-Edit `.env` and configure the required variables:
-
-```bash
-# Required: Your owner tag (format: firstname_lastname)
-OWNER=thomas_manson
-
-# Required: Redis Enterprise admin credentials
-REDIS_LOGIN=admin@yourdomain.com
-REDIS_PWD=your_secure_password
-
-# Required: Redis Enterprise download base URL
-# This is your private mirror or download source
-REDIS_DOWNLOAD_BASE_URL=https://your-private-mirror.com/redis-enterprise
-
-# Required: Redis Enterprise OS distribution
-# Supported: jammy (Ubuntu 22.04), focal (Ubuntu 20.04), rhel8, rhel9
-REDIS_OS=jammy
-
-# Required: System architecture
-# Supported: amd64, arm64
-REDIS_ARCHITECTURE=amd64
-
-# Optional: Redis Enterprise version (auto-detected if not set)
-# REDIS_VERSION=8.0.6
-# REDIS_BUILD=54
-
-# Optional: Direct URL override (auto-constructed if not set)
-# REDIS_ENTERPRISE_URL=https://your-mirror.com/redis/8.0.6/redislabs-8.0.6-54-jammy-amd64.tar
-
-# Required: Cloud provider credentials (choose one)
-# For AWS:
-AWS_CREDENTIALS_FILE=/path/to/aws-credentials.sh
-
-# For GCP:
-GCP_CREDENTIALS_FILE=/path/to/gcp-credentials.json
-GCP_PROJECT_ID=your-gcp-project-id
-
-# For Azure:
-AZURE_CREDENTIALS_FILE=/path/to/azure-credentials.sh
-```
-
-**Important:** All credentials should be stored in external files, not directly in `.env`.
-
-#### Redis Version Management
-
-The project supports **automatic version detection** for Redis Enterprise:
-
-**Automatic Mode (Recommended):**
-- Just set `REDIS_OS` and `REDIS_ARCHITECTURE`
-- The latest Redis Enterprise version is automatically detected from redis.io
-- The download URL is automatically constructed
-
-**Manual Mode:**
-- Set `REDIS_VERSION` and `REDIS_BUILD` for a specific version
-- Or set `REDIS_ENTERPRISE_URL` directly for complete control
-
-**Check Latest Version:**
-```bash
-./scripts/get_latest_redis_version.sh
-```
-
-This will show:
-```
-=========================================
-Redis Enterprise Latest Version
-=========================================
-Full version:    8.0.6-54
-Version number:  8.0.6
-Build number:    54
-=========================================
-```
-
-### Step 2: Verify Your Setup
-
-Run the verification script to ensure everything is configured correctly:
+### 2. Verify your setup
 
 ```bash
 ./scripts/verify_setup.sh
 ```
 
-**What this script checks:**
-1. ✅ `.env.sample` exists
-2. ✅ `.env` file exists and has required variables (`OWNER`, `REDIS_LOGIN`, `REDIS_PWD`, `REDIS_OS`, `REDIS_ARCHITECTURE`)
-3. ✅ `.env` is properly excluded in `.gitignore`
-4. ✅ All `variables.tf` files have `owner` and `skip_deletion` variables
-5. ✅ All `.tf.json` configuration files have `locals` block for tags
-6. ✅ All configuration directories have deployment scripts (`tofu_apply.sh`, `tofu_destroy.sh`)
-7. ✅ Template scripts exist in `scripts/` directory
-8. ✅ Documentation files exist
-
-You should see:
-```
-✓ All checks passed! Setup is complete.
-```
-
-### Step 3: Deploy Infrastructure
-
-> **⚠️ Important:** Always run deployment scripts from the **project root directory**. Do not run `tofu apply` or local scripts directly.
-
-#### Option A: Use the Interactive Menu (Recommended)
-
-Run the deployment menu from the project root:
+### 3. Deploy a cluster
 
 ```bash
-./deploy.sh
+# AWS Multi-AZ (Rack-Aware)
+./aws_multi_az.sh
+
+# GCP Single Zone
+./gcp_mono_az.sh
+
+# Azure Multi-Region Active-Active
+./azure_multi_region_aa.sh
 ```
 
-This will show you an interactive menu with all available configurations. After selecting a configuration, you'll be asked whether to **deploy** or **destroy** the infrastructure.
-
-#### Option B: Use Quick Deploy Scripts
-
-Run any of the quick deploy scripts from the project root:
+### 4. Destroy when done
 
 ```bash
-# Deploy (create/update)
-./aws_mono_region_rack_aware.sh
-./gcp_mono_region_basic.sh
-./azure_acre_enterprise.sh
-
-# Destroy infrastructure (add --destroy flag)
-./aws_mono_region_rack_aware.sh --destroy
-./gcp_mono_region_basic.sh --destroy
-./azure_acre_enterprise.sh --destroy
+#using the same script you used to create your cluster, add the --destroy flag to destroy it
+./aws_multi_az.sh --destroy
 ```
 
-All deployment scripts will:
-- ✅ Automatically detect the cloud provider (AWS, GCP, or Azure)
-- ✅ Load your credentials from `.env` (including `REDIS_LOGIN` and `REDIS_PWD`)
-- ✅ Tag all resources with `owner` and `skip_deletion`
-- ✅ Deploy the infrastructure with the correct Redis admin credentials
+---
 
-### Destroy Infrastructure
+## Available Scripts
 
-When you're done, destroy the infrastructure using the same script with `--destroy`:
+| Provider | Mono-AZ | Multi-AZ | Multi-Region A-A |
+|----------|---------|----------|------------------|
+| **AWS** | `aws_mono_az.sh` | `aws_multi_az.sh` | `aws_multi_region_aa.sh` |
+| **GCP** | `gcp_mono_az.sh` | `gcp_multi_az.sh` | `gcp_multi_region_aa.sh` |
+| **Azure** | `azure_mono_az.sh` | `azure_multi_az.sh` | `azure_multi_region_aa.sh` |
 
-```bash
-./aws_mono_region_rack_aware.sh --destroy
-```
+---
 
-## Cloud Provider Setup
+## Configuration
 
-### AWS Setup
+The `.env` file is organized into logical sections. See `.env.sample` for full documentation.
 
-1. Download an [AWS service account key file](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html)
-2. Create a credentials file (e.g., `~/.cred/aws.sh`) with the following content:
+### Cloud Provider Credentials
 
+Create credential files in `~/.private/` for each provider you want to use.
+Take the time to setup the 3 Cloud Providers credentials, it will save you time in the long run.
+
+<details>
+<summary><b>AWS Credentials</b></summary>
+
+Create `~/.private/aws.sh`:
 ```bash
 export KEY="your-aws-access-key"
 export SEC="your-aws-secret-key"
 ```
 
-3. Configure the path in your `.env` file:
-
+Configure in `.env`:
 ```bash
-AWS_CREDENTIALS_FILE=~/.cred/aws.sh
+AWS_CREDENTIALS_FILE=~/.private/aws.sh
 ```
 
-### GCP Setup
+📖 See [Appendix A: AWS Setup](#appendix-a-aws-setup) for detailed instructions.
+</details>
 
-1. Download a [GCP service account key file](https://cloud.google.com/iam/docs/creating-managing-service-account-keys) (JSON format)
-2. Configure the credentials in your `.env` file:
+<details>
+<summary><b>GCP Credentials</b></summary>
 
+Download a [service account key](https://cloud.google.com/iam/docs/creating-managing-service-account-keys) (JSON format).
+
+Configure in `.env`:
 ```bash
-GCP_CREDENTIALS_FILE=/path/to/gcp/credentials.json
+GCP_CREDENTIALS_FILE=~/.private/gcp-service-account.json
 GCP_PROJECT_ID=your-gcp-project-id
 ```
 
-### Azure Setup
+📖 See [Appendix B: GCP Setup](#appendix-b-gcp-setup) for detailed instructions.
+</details>
 
-TerraMine supports **two authentication methods** for Azure:
+<details>
+<summary><b>Azure Credentials</b></summary>
 
-#### Option 1: Azure CLI Authentication (Recommended for local development)
+**Option 1: Azure CLI (Recommended)**
 
-Best for developers who don't have permission to create Service Principals.
-
-1. Install Azure CLI: `brew install azure-cli` (macOS) or see [Appendix A](#appendix-a-azure-cli-setup)
-
-2. Login to Azure:
 ```bash
 az login
+az account show --query id -o tsv  # Get subscription ID
 ```
 
-3. Get your subscription ID:
-```bash
-az account show --query id -o tsv
-```
-
-4. Create credentials file `~/.cred/azure.sh`:
+Create `~/.private/azure.sh`:
 ```bash
 export AZURE_SUBSCRIPTION_ID="your-subscription-id"
-# tenant_id is auto-detected from your az login session
 ```
 
-5. Configure in `.env`:
+**Option 2: Service Principal (CI/CD)**
+
 ```bash
-AZURE_CREDENTIALS_FILE=~/.cred/azure.sh
+az ad sp create-for-rbac --name thomas-manson-sp --role Contributor \
+  --scopes /subscriptions/<subscription_id>
 ```
 
-#### Option 2: Service Principal Authentication (For CI/CD automation)
+📖 See [Appendix C: Azure Setup](#appendix-c-azure-setup) for detailed instructions.
+</details>
 
-Best for automated pipelines. Requires permission to create Service Principals.
+> 💡 **Tip:** Set up all 3 cloud providers once. You can then deploy to any cloud without additional configuration.
 
-1. Create a service principal:
+### General Cluster Configuration
+
 ```bash
-az ad sp create-for-rbac --name terramine-sp --role Contributor --scopes /subscriptions/<subscription_id>
+# Required
+OWNER=firstname_lastname      # Tag for resource ownership
+CLUSTER_SIZE=3                # Number of nodes (3-35)
+DEPLOYMENT_NAME=my-cluster    # Affects FQDN: my-cluster.aws.yourdomain.com
+
+# Redis Enterprise
+REDIS_DOWNLOAD_BASE_URL=https://s3.amazonaws.com/redis-enterprise-software-downloads
+REDIS_OS=jammy               # jammy, focal, rhel8, rhel9, amzn2
+REDIS_ARCHITECTURE=amd64     # amd64, arm64, x86_64
 ```
 
-2. Create credentials file `~/.cred/azure.sh`:
-```bash
-export AZURE_SUBSCRIPTION_ID="your-subscription-id"
-export AZURE_TENANT_ID="your-tenant-id"
-export AZURE_CLIENT_ID="your-client-id"
-export AZURE_CLIENT_SECRET="your-client-secret"
-```
+#### SSH Keys
 
-3. Configure in `.env`:
-```bash
-AZURE_CREDENTIALS_FILE=~/.cred/azure.sh
-```
-
-> **Note:** You need `Owner` or `Application Administrator` role to create Service Principals. With only `Contributor` role, use Option 1 (Azure CLI).
-
-#### SSH Key for Azure (RSA only)
-
-⚠️ **Azure does NOT support ed25519 SSH keys.** You must use an RSA key.
-
-If you use ed25519 for AWS/GCP, configure a separate RSA key for Azure in `.env`:
+Two SSH key variables exist because **Azure does NOT support ed25519**:
 
 ```bash
-# For AWS/GCP (ed25519 supported)
+# For AWS & GCP (both support ed25519 and RSA)
 SSH_PUBLIC_KEY=~/.ssh/id_ed25519.pub
+SSH_PRIVATE_KEY=~/.ssh/id_ed25519
 
 # For Azure (RSA only!)
 AZURE_SSH_PUBLIC_KEY=~/.ssh/id_rsa.pub
+AZURE_SSH_PRIVATE_KEY=~/.ssh/id_rsa
 ```
 
-Generate an RSA key if needed:
+Generate an RSA key for Azure if needed:
 ```bash
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -C "azure"
 ```
 
-📖 **For complete Azure setup instructions, see [Appendix A: Azure CLI Setup](#appendix-a-azure-cli-setup)**
+#### Deployment Name & FQDN
 
-## DNS Subdomain Delegation
+The `DEPLOYMENT_NAME` affects:
+- Cluster name in Redis Enterprise UI
+- DNS records: `<deployment_name>.<hosted_zone>`
 
-To use a dedicated subdomain for each cloud provider (e.g., `aws.paquerette.com`, `gcp.paquerette.com`, `azure.paquerette.com`), you need to delegate DNS zones from your main domain registrar to each cloud provider.
+Example: `DEPLOYMENT_NAME=prod-redis` + `AWS_HOSTED_ZONE=aws.example.com` → `prod-redis.aws.example.com`
 
-### Overview
+#### Redis Enterprise Version
 
-The process is the same for all providers:
-1. Create a hosted zone in the cloud provider for your subdomain
-2. Get the NS (Name Server) records from the cloud provider
-3. Add those NS records to your main domain registrar
-
-### AWS Route 53
-
-**Step 1: Create the hosted zone**
-
+The version is **auto-detected** from redis.io. To override:
 ```bash
-# Create hosted zone for aws.yourdomain.com
-aws route53 create-hosted-zone \
-  --name "aws.yourdomain.com" \
-  --caller-reference "$(date +%s)"
+REDIS_VERSION=8.0.6
+REDIS_BUILD=54
 ```
 
-**Step 2: Get the NS records**
+### Performance vs Budget
+
+The `.env.sample` includes cost comparisons for each cloud provider. Quick reference:
+
+| Profile | AWS | GCP | Azure |
+|---------|-----|-----|-------|
+| **Budget** | `t3.2xlarge` | `e2-standard-4` | `Standard_D4s_v3` |
+| **Performance** | `i4i.xlarge` | `n2-standard-8` + Local SSD | `Standard_L8s_v3` |
+
+For Redis on Flash, use instances with **local NVMe**:
+- AWS: `i3.*` or `i4i.*` instances
+- GCP: `n2-*` with `GCP_LOCAL_SSD_COUNT > 0`
+- Azure: `Standard_L*s_v3` instances
+
+---
+
+## DNS Configuration
+
+Each cloud provider needs a hosted zone for DNS records. Configure delegation from your domain registrar.
+
+### Setup Per Provider
+
+| Provider | Variable | Example |
+|----------|----------|---------|
+| AWS Route53 | `AWS_HOSTED_ZONE` | `aws.example.com` |
+| GCP Cloud DNS | `GCP_DOMAIN_NAME` | `gcp.example.com` |
+| Azure DNS | `AZ_HOSTED_ZONE` + `AZ_DNS_RESOURCE_GROUP` | `azure.example.com` |
+
+### Registrar Configuration
+
+Add NS records in your domain registrar pointing each subdomain to the cloud provider's nameservers:
+
+```
+aws.example.com   → AWS Route53 nameservers
+gcp.example.com   → GCP Cloud DNS nameservers
+azure.example.com → Azure DNS nameservers
+```
+
+<details>
+<summary><b>AWS Route53 - Get Nameservers</b></summary>
 
 ```bash
-# Get the hosted zone ID
-ZONE_ID=$(aws route53 list-hosted-zones-by-name \
-  --dns-name "aws.yourdomain.com" \
+# Create hosted zone
+aws route53 create-hosted-zone --name "aws.example.com" --caller-reference "$(date +%s)"
+
+# Get nameservers
+ZONE_ID=$(aws route53 list-hosted-zones-by-name --dns-name "aws.example.com" \
   --query "HostedZones[0].Id" --output text)
-
-# Get the NS records
-aws route53 get-hosted-zone --id $ZONE_ID \
-  --query "DelegationSet.NameServers" --output table
+aws route53 get-hosted-zone --id $ZONE_ID --query "DelegationSet.NameServers" --output table
 ```
+</details>
 
-You'll get something like:
-```
-ns-123.awsdns-45.com
-ns-678.awsdns-90.net
-ns-111.awsdns-22.org
-ns-333.awsdns-44.co.uk
-```
-
-**Step 3: Configure in your registrar**
-
-Add NS records for `aws` subdomain pointing to the AWS nameservers above.
-
-### Google Cloud DNS
-
-**Step 1: Create the DNS zone**
+<details>
+<summary><b>GCP Cloud DNS - Get Nameservers</b></summary>
 
 ```bash
-# Create DNS zone for gcp.yourdomain.com
-gcloud dns managed-zones create gcp-yourdomain-com \
-  --dns-name="gcp.yourdomain.com." \
-  --description="GCP subdomain for yourdomain.com" \
-  --project=YOUR_PROJECT_ID
-```
+# Create DNS zone
+gcloud dns managed-zones create gcp-example-com \
+  --dns-name="gcp.example.com." \
+  --description="GCP subdomain"
 
-**Step 2: Get the NS records**
+# Get nameservers
+gcloud dns managed-zones describe gcp-example-com --format="value(nameServers)"
+```
+</details>
+
+<details>
+<summary><b>Azure DNS - Get Nameservers</b></summary>
 
 ```bash
-# Get the NS records for the zone
-gcloud dns managed-zones describe gcp-yourdomain-com \
-  --project=YOUR_PROJECT_ID \
-  --format="value(nameServers)"
-```
-
-You'll get something like:
-```
-ns-cloud-a1.googledomains.com.
-ns-cloud-a2.googledomains.com.
-ns-cloud-a3.googledomains.com.
-ns-cloud-a4.googledomains.com.
-```
-
-**Step 3: Configure in your registrar**
-
-Add NS records for `gcp` subdomain pointing to the Google nameservers above.
-
-### Azure DNS
-
-**Step 1: Create a resource group (if needed)**
-
-```bash
-# Create resource group for DNS
+# Create resource group
 az group create --name dns-rg --location westeurope
+
+# Create DNS zone
+az network dns zone create --resource-group dns-rg --name "azure.example.com"
+
+# Get nameservers
+az network dns zone show --resource-group dns-rg --name "azure.example.com" \
+  --query nameServers --output table
 ```
+</details>
 
-**Step 2: Create the DNS zone**
-
-```bash
-# Create DNS zone for azure.yourdomain.com
-az network dns zone create \
-  --resource-group dns-rg \
-  --name "azure.yourdomain.com"
-```
-
-**Step 3: Get the NS records**
-
-```bash
-# Get the NS records for the zone
-az network dns zone show \
-  --resource-group dns-rg \
-  --name "azure.yourdomain.com" \
-  --query "nameServers" --output tsv
-```
-
-You'll get something like:
-```
-ns1-01.azure-dns.com.
-ns2-01.azure-dns.net.
-ns3-01.azure-dns.org.
-ns4-01.azure-dns.info.
-```
-
-**Step 4: Configure in your registrar**
-
-Add NS records for `azure` subdomain pointing to the Azure nameservers above.
-
-**Step 5: Configure in `.env`**
-
-```bash
-AZ_HOSTED_ZONE=azure.yourdomain.com
-AZ_DNS_RESOURCE_GROUP=dns-rg  # The resource group you created in Step 1
-```
-
-> **Note:** `AZ_DNS_RESOURCE_GROUP` is required because the DNS zone is typically in a different resource group than your Redis cluster deployment.
-
-### Configuring Your Domain Registrar
-
-In your domain registrar (e.g., OVH, Gandi, GoDaddy, Namecheap), add NS records for each subdomain:
-
-| Subdomain | Type | Value |
-|-----------|------|-------|
-| aws | NS | ns-123.awsdns-45.com |
-| aws | NS | ns-678.awsdns-90.net |
-| aws | NS | ns-111.awsdns-22.org |
-| aws | NS | ns-333.awsdns-44.co.uk |
-| gcp | NS | ns-cloud-a1.googledomains.com |
-| gcp | NS | ns-cloud-a2.googledomains.com |
-| gcp | NS | ns-cloud-a3.googledomains.com |
-| gcp | NS | ns-cloud-a4.googledomains.com |
-| azure | NS | ns1-01.azure-dns.com |
-| azure | NS | ns2-01.azure-dns.net |
-| azure | NS | ns3-01.azure-dns.org |
-| azure | NS | ns4-01.azure-dns.info |
-
-#### Example Zone File Format (BIND syntax)
+### Example Zone File Format (BIND syntax)
 
 If you edit your DNS zone file directly, add entries like this:
 
@@ -467,527 +325,221 @@ azure   10800   IN  NS  ns4-01.azure-dns.info.
 
 > **Note**: The TTL (10800 = 3 hours) can be adjusted. Don't forget the trailing dot (.) after nameserver FQDNs.
 
-### Verify DNS Delegation
+---
 
-After adding NS records (propagation can take up to 48 hours):
+## Utility Scripts
 
-```bash
-# Verify AWS delegation
-dig NS aws.yourdomain.com
+| Script | Description |
+|--------|-------------|
+| `scripts/verify_setup.sh` | Validate `.env` configuration and CLI tools |
+| `scripts/get_latest_redis_version.sh` | Fetch latest Redis Enterprise version from redis.io |
+| `scripts/aws_quota_check.sh` | List AWS vCPU quotas by region |
+| `scripts/gcp_quota_check.sh` | List GCP CPU quotas by region |
+| `scripts/azure_quota_check.sh` | List Azure vCPU quotas by region |
+| `scripts/toggle_sensitive.sh` | Hide/show sensitive values in terraform output |
 
-# Verify GCP delegation
-dig NS gcp.yourdomain.com
-
-# Verify Azure delegation
-dig NS azure.yourdomain.com
-```
-
-### Update .env Configuration
-
-Once delegation is complete, update your `.env` file:
+### Usage Examples
 
 ```bash
-# AWS
-AWS_HOSTED_ZONE_NAME=aws-yourdomain-com
+# Check quotas before deploying
+./scripts/aws_quota_check.sh us-east-1
+./scripts/gcp_quota_check.sh us-central1
+./scripts/azure_quota_check.sh westeurope
 
-# GCP
-GCP_HOSTED_ZONE_NAME=gcp-yourdomain-com
-
-# Azure
-AZ_HOSTED_ZONE=azure.yourdomain.com
-AZ_DNS_RESOURCE_GROUP=dns-rg  # Resource group containing the DNS zone
+# Get latest Redis version
+./scripts/get_latest_redis_version.sh
 ```
-
-## Redis Enterprise Architecture
-
-A Redis Enterprise cluster is composed of identical nodes that are deployed within a data center or stretched across local availability zones. Redis Enterprise architecture is made up of a management path (shown in the blue layer in the figure below) and data access path (shown in the red layer in the figure below).
-
-![Redis Enterprise](https://cloudblogs.microsoft.com/wp-content/uploads/sites/37/2019/06/Redis_image-1-1024x293.png)
-
-**Management path** includes the cluster manager, proxy and secure REST API/UI for programmatic administration. In short, cluster manager is responsible for orchestrating the cluster, placement of database shards as well as detecting and mitigating failures. Proxy helps scale connection management.
-
-**Data Access path** is composed of master and replica Redis shards. Clients perform data operations on the master shard. Master shards maintain replica shards using the in-memory replication for protection against failures that may render master shard inaccessible.
-
-![Nodes, shards and clusters and Redis databases](https://redislabs.com/wp-content/uploads/2019/06/blog-volkov-20190625-1-v5.png)
-
-
-## 📚 Available Configurations
-
-### Quick Deploy Scripts (from project root)
-
-All configurations can be deployed or destroyed using quick scripts from the project root.
-
-**Usage:**
-```bash
-# Deploy infrastructure
-./script_name.sh
-
-# Destroy infrastructure
-./script_name.sh --destroy
-```
-
-**AWS:**
-- `./aws_mono_region_basic.sh` - Single availability zone
-- `./aws_mono_region_rack_aware.sh` - Multiple availability zones
-- `./aws_cross_region_basic.sh` - Multi-region, single AZ per region
-- `./aws_cross_region_rack_aware.sh` - Multi-region, multi-AZ
-
-**GCP:**
-- `./gcp_mono_region_basic.sh` - Single zone
-- `./gcp_mono_region_rack_aware.sh` - Multiple zones
-- `./gcp_cross_region_basic.sh` - Multi-region, single zone per region
-- `./gcp_cross_region_rack_aware.sh` - Multi-region, multi-zone
-
-**GCP GKE (Kubernetes):**
-- `./gcp_gke_mono_region_basic.sh`
-- `./gcp_gke_mono_region_rack_aware.sh`
-- `./gcp_gke_cross_region_basic.sh`
-- `./gcp_gke_cross_region_rack_aware.sh`
-
-**Azure:**
-- `./azure_mono_region_basic.sh` - Single availability zone
-- `./azure_mono_region_rack_aware.sh` - Multiple availability zones
-- `./azure_cross_region_basic.sh` - Multi-region, single AZ per region
-- `./azure_cross_region_rack_aware.sh` - Multi-region, multi-AZ
-
-**Azure ACRE (Managed Service):**
-- `./azure_acre_enterprise.sh` - Azure Cache for Redis Enterprise
-- `./azure_acre_oss.sh` - Azure Cache for Redis OSS
-
-### Configuration Directories
-
-If you prefer to navigate to the configuration directories:
-
-**AWS:**
-- `main/AWS/Mono-Region/Basic_Cluster`
-- `main/AWS/Mono-Region/Rack_Aware_Cluster`
-- `main/AWS/Cross-Region/Basic_Clusters`
-- `main/AWS/Cross-Region/Rack_Aware_Clusters`
-
-**GCP:**
-- `main/GCP/Mono-Region/Basic_Cluster`
-- `main/GCP/Mono-Region/Rack_Aware_Cluster`
-- `main/GCP/Cross-Region/Basic_Clusters`
-- `main/GCP/Cross-Region/Rack_Aware_Clusters`
-- `main/GCP/GKE/Mono-Region/Basic_Cluster`
-- `main/GCP/GKE/Mono-Region/Rack_Aware_Cluster`
-- `main/GCP/GKE/Cross-Region/Basic_Clusters`
-- `main/GCP/GKE/Cross-Region/Rack_Aware_Clusters`
-
-**Azure:**
-- `main/Azure/Mono-Region/Basic_Cluster`
-- `main/Azure/Mono-Region/Rack_Aware_Cluster`
-- `main/Azure/Cross-Region/Basic_Clusters`
-- `main/Azure/Cross-Region/Rack_Aware_Clusters`
-- `main/Azure/ACRE/Enterprise`
-- `main/Azure/ACRE/OSS`
-
-### Redis Enterprise on Virtual Machines
-
-Each configuration consists of one (or many) JSON file(s) (tf.json) that calls one or many modules depending on the configuration. For each cloud provider, there exists:
-
-- **Networking module** - Creates VPCs/VNETs and subnets
-- **DNS module** - Creates the cluster's FQDN (NS record) and cluster nodes domain names (A records)
-- **Redis Enterprise (re) module** - Creates the cluster nodes
-- **Bastion module** - Creates a client machine with pre-installed packages (memtier, redis-cli, Prometheus, Grafana)
-- **Other modules** - For specific purposes like peering or keypair management
-
-### Redis Enterprise on Kubernetes
-
-Another way to deploy Redis Enterprise is to use the Redis Enterprise [Operator](https://docs.redis.com/latest/kubernetes/architecture/operator/) for Kubernetes. It provides a simple way to get a Redis Enterprise cluster on Kubernetes and enables more complex deployment scenarios.
-
-The Operator allows Redis to maintain a unified deployment solution across various Kubernetes environments:
-- RedHat OpenShift
-- VMware Tanzu (TKG and TKGI, formerly PKS)
-- Google Kubernetes Engine (GKE)
-- Azure Kubernetes Service (AKS)
-- Vanilla (upstream) Kubernetes
-
-StatefulSet and anti-affinity guarantee that each Redis Enterprise node resides on a Pod that is hosted on a different VM or physical server.
-
-![Operator](https://www.odbms.org/wp-content/uploads/2018/09/Redis12.png)
-
-#### Kubernetes Prerequisites
-
-To deploy Redis Enterprise on Kubernetes, you'll need:
-- The cloud provider's CLI ([gcloud](https://cloud.google.com/sdk/gcloud), [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/), [AWS CLI](https://aws.amazon.com/cli/))
-- A Kubernetes client ([kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/))
-
-## Deployment Methods
-
-### Method 1: Interactive Menu
-
-```bash
-./deploy.sh
-```
-
-Select from a numbered list of all 18 available configurations. After selecting a configuration, choose whether to **deploy** or **destroy** the infrastructure.
-
-### Method 2: Quick Deploy Scripts
-
-```bash
-# Deploy infrastructure
-./aws_mono_region_rack_aware.sh
-
-# Destroy infrastructure
-./aws_mono_region_rack_aware.sh --destroy
-```
-
-Direct deployment/destruction from the project root without navigation.
-
-### Method 3: Traditional Navigation
-
-```bash
-cd main/AWS/Mono-Region/Rack_Aware_Cluster
-tofu init
-tofu plan
-tofu apply
-
-# Or to destroy:
-tofu destroy
-```
-
-Or use the provided scripts:
-
-```bash
-cd main/AWS/Mono-Region/Rack_Aware_Cluster
-./tofu_apply.sh
-```
-
-## 🔧 Advanced Options
-
-### Auto-Approve Mode
-
-To skip confirmation prompts, add to your `.env`:
-
-```bash
-AUTO_APPROVE=yes
-```
-
-### Custom Deployment Name
-
-Override the default deployment name:
-
-```bash
-DEPLOYMENT_NAME=my-custom-deployment
-```
-
-### Skip Deletion Tag
-
-Protect resources from deletion:
-
-```bash
-SKIP_DELETION=yes
-```
-
-### Toggle Sensitive Output (Demo/POC Mode)
-
-By default, Terraform/OpenTofu hides sensitive values (like passwords) in logs. For demo or POC environments where transparency is more important than security, you can toggle this behavior:
-
-```bash
-# Check current mode
-./scripts/toggle_sensitive.sh status
-
-# Enable DEMO mode (show all logs, including sensitive values)
-./scripts/toggle_sensitive.sh show
-
-# Enable PRODUCTION mode (hide sensitive values in logs)
-./scripts/toggle_sensitive.sh hide
-```
-
-### Client Machine Features
-
-If a client is added and enabled (the rs-client block added to the configuration file), a standalone machine will be created in the same VPC as the cluster containing:
-
-- [memtier_benchmark](https://github.com/RedisLabs/memtier_benchmark) - Load generation and benchmarking for NoSQL key-value databases
-- [Redis Stack](https://redis.io/docs/stack/) - Fully-extensive developer experience with Redis CLI, Redis modules, and RedisInsight
-- [Prometheus](https://prometheus.io/) - Scrape time-series metrics exposed by the Redis `metrics_exporter` (on port 8070)
-- [Grafana](https://grafana.com/grafana/) - Query, visualize, and alert on metrics scraped by Prometheus
-
-![Prometheus](https://prometheus.io/assets/docs/architecture.svg)
-
-### Private Configuration
-
-If the configuration is set as private (`private_conf` set to true), the cluster will be created in one or many private subnets and will be reachable only by a bastion node. This configuration will create a NAT (Network Address Translation) gateway, so the cluster nodes in the private subnet(s) can connect to services outside the VPC but external services cannot initiate a connection with those instances.
-
-## 📖 Documentation
-
-All detailed documentation is organized in the [`augment/`](augment/) directory:
-
-### User Guides
-- [DEPLOYMENT_SHORTCUTS.md](augment/DEPLOYMENT_SHORTCUTS.md) - Detailed documentation on quick deploy scripts
-- [SHORTCUTS_REFERENCE.md](augment/SHORTCUTS_REFERENCE.md) - Quick reference for all deployment shortcuts
-- [TAGGING_AND_CREDENTIALS.md](augment/TAGGING_AND_CREDENTIALS.md) - Comprehensive guide on tagging and credentials management
-
-### Technical Documentation
-- [IMPLEMENTATION_SUMMARY.md](augment/IMPLEMENTATION_SUMMARY.md) - Technical implementation details
-
-### Changelogs
-- [CHANGELOG_REDIS_VERSION_AUTOMATION.md](augment/CHANGELOG_REDIS_VERSION_AUTOMATION.md) - Redis version auto-detection system (2026-01-07)
-- [CHANGELOG_FINAL_UPDATES.md](augment/CHANGELOG_FINAL_UPDATES.md) - Final documentation updates (2026-01-06)
-- [CHANGELOG_README_MIGRATION.md](augment/CHANGELOG_README_MIGRATION.md) - README migration from AsciiDoc to Markdown
-- [CHANGELOG_REDIS_URL.md](augment/CHANGELOG_REDIS_URL.md) - Redis Enterprise URL centralization changes
-- [CHANGELOG_DEPLOYMENT_SHORTCUTS.md](augment/CHANGELOG_DEPLOYMENT_SHORTCUTS.md) - Deployment shortcuts implementation details
-- [CHANGELOG_TAGGING.md](augment/CHANGELOG_TAGGING.md) - Tagging and credentials management implementation
-
-📚 **See [augment/README.md](augment/README.md) for a complete documentation index.**
-
-## 📝 Important Notes
-
-### Terraform State
-
-The terraform state file is currently maintained locally. This means:
-- Only one deployment is supported for each directory where the script is executed (terraform state file)
-- Deployments created by other individuals will not be updatable
-
-### Resource Tagging
-
-All cloud resources must be tagged with:
-- `owner` - Your name in format `firstname_lastname` (e.g., `thomas_manson`)
-- `skip_deletion` - Set to `yes` for resources that should not be deleted
-
-### Security
-
-**Never commit credentials to version control!** The `.env` file is already added to `.gitignore` and will not be committed.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is licensed under the terms specified in the [LICENSE](LICENSE) file.
-
-## 🔗 Links
-
-- [Redis Enterprise Documentation](https://docs.redis.com/latest/)
-- [Terraform Documentation](https://www.terraform.io/docs)
-- [OpenTofu Documentation](https://opentofu.org/docs/)
 
 ---
 
 ## Appendices
 
-### Appendix A: Azure CLI Setup
+### Appendix A: AWS Setup
 
-This appendix provides detailed instructions for setting up Azure CLI and configuring credentials for TerraMine deployments.
+#### Prerequisites
 
-TerraMine supports **two authentication methods**:
+- AWS account with IAM permissions to create EC2, VPC, Route53 resources
+- AWS CLI installed: `brew install awscli` (macOS) or see [AWS CLI docs](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 
-| Method | Best For | Requirements |
-|--------|----------|--------------|
-| **Azure CLI** (`az login`) | Local development, users with only `Contributor` role | Just `az login` + subscription ID |
-| **Service Principal** | CI/CD pipelines, automation | `Owner` or `Application Administrator` role to create SP |
+#### Step 1: Create IAM Access Keys
 
-#### Step 1: Install Azure CLI
+1. Go to [AWS IAM Console](https://console.aws.amazon.com/iam/)
+2. Navigate to Users → Your User → Security credentials
+3. Create access key → Select "CLI" use case
+4. Download or copy the Access Key ID and Secret Access Key
 
-**macOS (using Homebrew):**
+#### Step 2: Create Credentials File
+
 ```bash
-brew update && brew install azure-cli
+mkdir -p ~/.private
+cat > ~/.private/aws.sh << 'EOF'
+export KEY="xxxxxxxxxxxxx"
+export SEC="yyyyyyyyyyyyy"
+EOF
+chmod 600 ~/.private/aws.sh
 ```
 
-**Linux (Ubuntu/Debian):**
+#### Step 3: Configure `.env`
+
 ```bash
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+AWS_CREDENTIALS_FILE=~/.private/aws.sh
+AWS_REGION_NAME=us-east-1
 ```
 
-**Windows:**
-Download and run the [MSI installer](https://aka.ms/installazurecliwindows)
+#### Step 4: Verify
 
-**Verify installation:**
 ```bash
-az --version
+source ~/.private/aws.sh
+aws sts get-caller-identity
 ```
 
-#### Step 2: Authenticate with Azure
+---
+
+### Appendix B: GCP Setup
+
+#### Prerequisites
+
+- GCP project with billing enabled
+- `gcloud` CLI installed: `brew install google-cloud-sdk` (macOS) or see [gcloud docs](https://cloud.google.com/sdk/docs/install)
+
+#### Step 1: Create a Service Account
 
 ```bash
+# Set your project
+gcloud config set project YOUR_PROJECT_ID
+
+# Create service account
+gcloud iam service-accounts create thomas-manson-sa \
+  --display-name="Thomas Manson Service Account"
+
+# Grant Compute Admin role
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:thomas-manson-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/compute.admin"
+
+# Grant DNS Admin role (for DNS records)
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:thomas-manson-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/dns.admin"
+
+# Grant Service Account User (for instances)
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:thomas-manson-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+```
+
+#### Step 2: Download Service Account Key
+
+```bash
+mkdir -p ~/.private
+gcloud iam service-accounts keys create ~/.private/gcp-service-account.json \
+  --iam-account=thomas-manson-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com
+chmod 600 ~/.private/gcp-service-account.json
+```
+
+#### Step 3: Configure `.env`
+
+```bash
+GCP_CREDENTIALS_FILE=~/.private/gcp-service-account.json
+GCP_PROJECT_ID=your-project-id
+GCP_REGION_NAME=us-central1
+```
+
+#### Step 4: Verify
+
+```bash
+gcloud auth activate-service-account --key-file=~/.private/gcp-service-account.json
+gcloud compute zones list --limit=5
+```
+
+---
+
+### Appendix C: Azure Setup
+
+#### Prerequisites
+
+- Azure subscription
+- Azure CLI installed: `brew install azure-cli` (macOS) or see [Azure CLI docs](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
+
+#### Option 1: Azure CLI Authentication (Recommended)
+
+Best for developers who don't have permission to create Service Principals.
+
+```bash
+# Login to Azure
 az login
-```
 
-This will open a browser window for authentication. After successful login, verify your account:
-
-```bash
-az account show
-```
-
-You should see output like:
-```json
-{
-  "environmentName": "AzureCloud",
-  "id": "ef03f41d-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-  "isDefault": true,
-  "name": "Your Subscription Name",
-  "state": "Enabled",
-  "tenantId": "1428732f-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-  "user": {
-    "name": "your.email@domain.com",
-    "type": "user"
-  }
-}
-```
-
-**Note the important values:**
-- `id` → This is your `AZURE_SUBSCRIPTION_ID`
-- `tenantId` → This is your `AZURE_TENANT_ID`
-
-#### Step 3: Check Your Permissions
-
-Before creating a service principal, verify you have the required permissions:
-
-```bash
-# Check your current role assignments
-az role assignment list --assignee $(az ad signed-in-user show --query id -o tsv) --output table
-```
-
-**To create a service principal, you need one of these roles:**
-- `Owner` on the subscription
-- `User Access Administrator` + `Contributor`
-- Or an Azure AD role like `Application Administrator` or `Cloud Application Administrator`
-
-If you only have `Contributor` role, you **cannot** create service principals. **Use Azure CLI authentication instead** (skip to Step 6).
-
-#### Step 4: Check for Existing Service Principals (Optional - for SP auth only)
-
-Before creating a new service principal, check if one already exists:
-
-```bash
-# List all service principals (app registrations) you have access to
-az ad sp list --all --query "[].{Name:displayName, AppId:appId, Created:createdDateTime}" --output table
-
-# Search for a specific service principal by name
-az ad sp list --display-name "terramine" --output table
-
-# Search for service principals containing a keyword
-az ad sp list --all --query "[?contains(displayName, 'terraform')].{Name:displayName, AppId:appId}" --output table
-```
-
-If you find an existing service principal you want to use, you can reset its credentials:
-
-```bash
-# Reset credentials for an existing service principal (generates new secret)
-az ad sp credential reset --id <app-id-or-name>
-```
-
-#### Step 5: Create a New Service Principal (Optional - for SP auth only)
-
-If you have the required permissions and need a new service principal:
-
-```bash
 # Get your subscription ID
+az account show --query id -o tsv
+
+# Create credentials file
+mkdir -p ~/.private
+cat > ~/.private/azure.sh << 'EOF'
+# Azure CLI auth - run 'az login' before deploying
+export AZURE_SUBSCRIPTION_ID="your-subscription-id"
+EOF
+chmod 600 ~/.private/azure.sh
+```
+
+> ⚠️ Remember to run `az login` before each deployment session.
+
+#### Option 2: Service Principal (CI/CD Automation)
+
+Requires `Owner` or `Application Administrator` role.
+
+```bash
+# Get subscription ID
 SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 
-# Create a service principal with Contributor role
+# Create service principal
 az ad sp create-for-rbac \
-  --name "terramine-sp" \
+  --name "thomas-manson-sp" \
   --role Contributor \
   --scopes /subscriptions/$SUBSCRIPTION_ID
 ```
 
-**Successful output:**
+Save the output:
 ```json
 {
-  "appId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-  "displayName": "terramine-sp",
-  "password": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "tenant": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  "appId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",      → AZURE_CLIENT_ID
+  "password": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",     → AZURE_CLIENT_SECRET
+  "tenant": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"      → AZURE_TENANT_ID
 }
 ```
 
-**⚠️ IMPORTANT:** Save the `password` immediately! It's only shown once.
-
-**Map the values to your `.env`:**
-| Azure Output | `.env` Variable |
-|--------------|-----------------|
-| `appId` | `AZURE_CLIENT_ID` |
-| `password` | `AZURE_CLIENT_SECRET` |
-| `tenant` | `AZURE_TENANT_ID` |
-| Subscription ID | `AZURE_SUBSCRIPTION_ID` |
-
-#### Step 6: Create Credentials File
-
-**For Azure CLI authentication (Contributor role - most users):**
-
+Create credentials file:
 ```bash
-mkdir -p ~/.cred
-cat > ~/.cred/azure.sh << 'EOF'
-# Azure CLI authentication - only subscription_id required
-# Run 'az login' before deploying!
-export AZURE_SUBSCRIPTION_ID="your-subscription-id"
-# tenant_id is optional - auto-detected from az login session
-# export AZURE_TENANT_ID="your-tenant-id"
-EOF
-chmod 600 ~/.cred/azure.sh
-```
-
-**For Service Principal authentication (CI/CD automation):**
-
-```bash
-mkdir -p ~/.cred
-cat > ~/.cred/azure.sh << 'EOF'
-# Service Principal authentication - all four required
+mkdir -p ~/.private
+cat > ~/.private/azure.sh << 'EOF'
 export AZURE_SUBSCRIPTION_ID="your-subscription-id"
 export AZURE_TENANT_ID="your-tenant-id"
-export AZURE_CLIENT_ID="your-app-id"
-export AZURE_CLIENT_SECRET="your-password"
+export AZURE_CLIENT_ID="your-client-id"
+export AZURE_CLIENT_SECRET="your-client-secret"
 EOF
-chmod 600 ~/.cred/azure.sh
+chmod 600 ~/.private/azure.sh
 ```
 
-#### Step 7: Configure `.env`
-
-Add to your `.env` file:
+#### Configure `.env`
 
 ```bash
-AZURE_CREDENTIALS_FILE=~/.cred/azure.sh
+AZURE_CREDENTIALS_FILE=~/.private/azure.sh
+AZ_REGION_NAME="East US"
 ```
 
-#### Troubleshooting
+#### Verify
 
-**Error: "Insufficient privileges to complete the operation"**
-
-You don't have permission to create service principals. **Use Azure CLI authentication instead:**
-1. Make sure you're logged in: `az login`
-2. Only set `AZURE_SUBSCRIPTION_ID` in your credentials file
-3. Leave `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET` empty or unset
-
-**Error: "The subscription is not registered to use namespace 'Microsoft.Compute'"**
-
-Register the required resource providers:
 ```bash
-az provider register --namespace Microsoft.Compute
-az provider register --namespace Microsoft.Network
-az provider register --namespace Microsoft.Storage
-```
-
-**Verify service principal works:**
-```bash
-# Login as the service principal
-az login --service-principal \
-  --username $AZURE_CLIENT_ID \
-  --password $AZURE_CLIENT_SECRET \
-  --tenant $AZURE_TENANT_ID
-
-# Verify access
+# For CLI auth
 az account show
+
+# For Service Principal
+source ~/.private/azure.sh
+az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
 ```
 
-#### Useful Azure CLI Commands
+---
 
-```bash
-# List all subscriptions
-az account list --output table
+## License
 
-# Switch to a different subscription
-az account set --subscription "Subscription Name or ID"
-
-# List available regions
-az account list-locations --output table
-
-# List available VM sizes in a region
-az vm list-sizes --location "France Central" --output table
-
-# Check resource provider registration status
-az provider list --query "[?registrationState=='Registered'].namespace" --output table
-```
+This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
 

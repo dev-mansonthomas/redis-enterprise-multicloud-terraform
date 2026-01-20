@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
-# Azure Cross-Region Rack-Aware Clusters deployment
-# Usage: ./azure_cross_region_rack_aware.sh [--destroy]
+# Azure Multi-Region Active-Active deployment
+# Usage: ./azure_multi_region_aa.sh [--destroy]
 # =============================================================================
 
 CONFIG_DIR="main/Azure/Cross-Region/Rack_Aware_Clusters"
@@ -18,9 +18,9 @@ source "$PROJECT_ROOT/scripts/common.sh"
 source "$PROJECT_ROOT/scripts/providers/azure.sh"
 
 if [[ "$ACTION" == "destroy" ]]; then
-    log_header "Azure Cross-Region Rack-Aware Clusters - DESTROY"
+    log_header "Azure Multi-Region Active-Active - DESTROY"
 else
-    log_header "Azure Cross-Region Rack-Aware Clusters"
+    log_header "Azure Multi-Region Active-Active"
 fi
 echo "Configuration: $CONFIG_DIR"
 
