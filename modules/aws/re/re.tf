@@ -43,6 +43,9 @@ resource "aws_instance" "node" {
     volume_size           = var.boot_disk_size
     volume_type           = var.boot_disk_type
     delete_on_termination = true
+    tags = merge(var.resource_tags, {
+      Name = "${var.name}-node-${count.index}-root"
+    })
   }
 
   # Minimal user_data to setup SSH key and wait for cloud-init

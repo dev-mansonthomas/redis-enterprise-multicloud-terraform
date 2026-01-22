@@ -18,9 +18,9 @@ provider "aws" {
     peer_region   = var.peer_region
     auto_accept   = false
 
-    tags = {
+    tags = merge(var.resource_tags, {
       Name = var.name
-    }
+    })
   }
 
   resource "aws_vpc_peering_connection_accepter" "peer" {
@@ -28,9 +28,10 @@ provider "aws" {
     vpc_peering_connection_id = aws_vpc_peering_connection.peering.id
     auto_accept               = true
 
-    tags = {
+    tags = merge(var.resource_tags, {
+      Name = "${var.name}-accepter"
       Side = "Peering Accepter"
-    }
+    })
   }
 
   resource "aws_vpc_peering_connection_options" "requester" {

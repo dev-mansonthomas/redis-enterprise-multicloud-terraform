@@ -6,7 +6,8 @@
             "requester_vpc": "${module.network-vpc-1.raw_vpc}",
             "peer_vpc": "${module.network-vpc-2.raw_vpc}",
             "requester_region": "${var.region_1_name}",
-            "peer_region": "${var.region_2_name}"
+            "peer_region": "${var.region_2_name}",
+            "resource_tags": "${local.common_tags}"
         }
     }
 }

@@ -28,6 +28,7 @@ resource "azurerm_public_ip" "master-ip" {
   allocation_method   = "Static"
   sku                 = "Standard"
   zones               = [sort(var.availability_zones)[0]]
+  tags                = var.resource_tags
 }
 
 # Worker nodes public IPs
@@ -39,6 +40,7 @@ resource "azurerm_public_ip" "worker-ips" {
   allocation_method   = "Static"
   sku                 = "Standard"
   zones               = [sort(var.availability_zones)[(count.index + 1) % length(var.availability_zones)]]
+  tags                = var.resource_tags
 }
 
 ###########################################################

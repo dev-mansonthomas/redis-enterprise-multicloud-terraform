@@ -61,6 +61,9 @@ resource "aws_instance" "bastion" {
     volume_size           = var.boot_disk_size
     volume_type           = var.boot_disk_type
     delete_on_termination = true
+    tags = merge(var.resource_tags, {
+      Name = "${var.name}-client-root"
+    })
   }
 
 }

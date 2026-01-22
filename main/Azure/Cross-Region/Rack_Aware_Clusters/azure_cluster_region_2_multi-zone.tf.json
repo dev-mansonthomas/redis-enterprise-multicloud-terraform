@@ -4,6 +4,7 @@
             "source": "../../../../modules/azure/rg",
             "name": "${var.deployment_name}-${var.env2}",
             "region": "${var.region_2_name}",
+            "resource_tags": "${local.common_tags}",
             "providers": {
                 "azurerm": "azurerm.provider2"
             }

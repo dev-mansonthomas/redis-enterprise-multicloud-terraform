@@ -20,3 +20,8 @@ variable "peer_region" {
 variable "requester_vpc" {
   description = "The requester VPC"
 }
+
+variable "resource_tags" {
+  description = "hash with tags for all resources"
+  default     = {}
+}

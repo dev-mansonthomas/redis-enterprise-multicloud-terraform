@@ -13,7 +13,8 @@ locals {
 }
 
 resource "google_compute_address" "bastion-ip-address" {
-  name  = "${var.name}-bastion-ip-address"
+  name   = "${var.name}-bastion-ip-address"
+  labels = var.resource_tags
 }
 
 resource "google_compute_instance" "bastion" {
@@ -24,8 +25,9 @@ resource "google_compute_instance" "bastion" {
 
   boot_disk {
     initialize_params {
-      image = var.machine_image
-      size  = var.boot_disk_size
+      image  = var.machine_image
+      size   = var.boot_disk_size
+      labels = var.resource_tags
     }
   }
 

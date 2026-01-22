@@ -23,9 +23,10 @@ resource "google_compute_instance" "cluster_master" {
 
   boot_disk {
     initialize_params {
-      image = var.machine_image
-      size  = var.boot_disk_size
-      type  = var.boot_disk_type
+      image  = var.machine_image
+      size   = var.boot_disk_size
+      type   = var.boot_disk_type
+      labels = var.resource_tags
     }
   }
 
@@ -126,9 +127,10 @@ resource "google_compute_instance" "nodes" {
 
   boot_disk {
     initialize_params {
-      image = var.machine_image
-      size  = var.boot_disk_size
-      type  = var.boot_disk_type
+      image  = var.machine_image
+      size   = var.boot_disk_size
+      type   = var.boot_disk_type
+      labels = var.resource_tags
     }
   }
 

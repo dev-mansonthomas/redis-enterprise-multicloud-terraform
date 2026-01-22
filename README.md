@@ -338,6 +338,16 @@ azure   10800   IN  NS  ns4-01.azure-dns.info.
 | `scripts/azure_quota_check.sh` | List Azure vCPU quotas by region |
 | `scripts/toggle_sensitive.sh` | Hide/show sensitive values in terraform output |
 
+### Tag Verification Scripts
+
+Verify that all cloud resources have proper `owner` and `skip_deletion` tags for cost tracking and automated cleanup:
+
+| Script | Description |
+|--------|-------------|
+| `scripts/check_tags_aws.sh` | Verify AWS resource tags (EC2, VPC, EBS, VPC peering, etc.) |
+| `scripts/check_tags_gcp.sh` | Verify GCP resource labels (instances, disks, static IPs) |
+| `scripts/check_tags_azure.sh` | Verify Azure resource tags (VMs, NICs, disks, public IPs, etc.) |
+
 ### Usage Examples
 
 ```bash
@@ -348,6 +358,11 @@ azure   10800   IN  NS  ns4-01.azure-dns.info.
 
 # Get latest Redis version
 ./scripts/get_latest_redis_version.sh
+
+# Verify resource tags after deployment
+./scripts/check_tags_aws.sh
+./scripts/check_tags_gcp.sh
+./scripts/check_tags_azure.sh
 ```
 
 ---
