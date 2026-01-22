@@ -70,11 +70,11 @@
             "availability_zone": "${keys(local.effective_bastion_1_subnet)[0]}",
             "security_groups": "${module.network-vpc-1.bastion-security-groups}",
             "machine_image": "${var.machine_image_region_1}",
-            "machine_type": "${var.machine_type}",
+            "machine_type": "${var.bastion_machine_type}",
             "memtier_package": "${var.memtier_package}",
-            "redis_stack_package": "${var.redis_stack_package}",
-            "redis_insight_package": "${var.redis_insight_package}",
-            "promethus_package": "${var.promethus_package}",
+            "prometheus_package": "${var.prometheus_package}",
+            "grafana_version": "${var.grafana_version}",
+            "java_version": "${var.java_version}",
             "cluster_dns": "${module.rs-cluster-1-dns.cluster_dns}",
             "boot_disk_size": "${var.volume_size}",
             "boot_disk_type": "${var.volume_type}",
@@ -101,6 +101,9 @@
         "rs-client-1-public-IP": {
             "value": "${module.rs-client-1.public-ip}"
         },
+        "rs-client-1-ssh-command": {
+            "value": "${module.rs-client-1.ssh-command}"
+        },
         "rs-prometheus-endpoint-1": {
             "value": "${module.rs-client-1.prometheus-endpoint}"
         },
@@ -108,7 +111,7 @@
             "value": "${module.rs-client-1.grafana-endpoint}"
         },
         "rs-insight-endpoint-1": {
-            "value": "${module.rs-client-1.redis-insight-endpoint}"
+            "value": "${module.rs-client-1.redisinsight-endpoint}"
         },
         "rs-cluster-1-public-ips": {
             "value": "${module.rs-cluster-1.re-public-ips}"

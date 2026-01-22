@@ -140,6 +140,16 @@ resource "aws_security_group" "allow-global" {
     cidr_blocks       = ["0.0.0.0/0"]
   }
 
+  ## RedisInsight Port
+
+  ingress {
+    description       = "RedisInsight UI port"
+    from_port         = 5540
+    to_port           = 5540
+    protocol          = "tcp"
+    cidr_blocks       = ["0.0.0.0/0"]
+  }
+
   ## Redis DB Ports
 
   ingress {

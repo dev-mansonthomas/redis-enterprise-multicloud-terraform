@@ -96,7 +96,7 @@ resource "azurerm_network_security_rule" "public-ports" {
     access                      = "Allow"
     protocol                    = "Tcp"
     source_port_range           = "*"
-    destination_port_ranges      = ["10000-19999", "21", "80", "443", "3000", "8443", "8001", "8070", "8071", "9081", "9090", "9443", "8080"]
+    destination_port_ranges      = ["10000-19999", "21", "80", "443", "3000", "5540", "8443", "8001", "8070", "8071", "9081", "9090", "9443", "8080"]
     source_address_prefix       = "*"
     destination_address_prefix  = "*"
     resource_group_name         = var.resource_group

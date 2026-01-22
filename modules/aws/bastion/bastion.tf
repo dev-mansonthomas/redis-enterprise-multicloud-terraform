@@ -7,6 +7,12 @@ terraform {
   }
 }
 
+###########################################################
+# Local variables for scripts path
+locals {
+  scripts_path = "${path.module}/../../common/bastion"
+}
+
 ############################################################
 # Network Interface
 
@@ -37,7 +43,7 @@ resource "aws_eip" "eip" {
 # EC2
 
 resource "aws_instance" "bastion" {
-  ami               = var.machine_image 
+  ami               = var.machine_image
   instance_type     = var.machine_type
   availability_zone = var.availability_zone
   key_name          = var.ssh_key_name
@@ -51,253 +57,48 @@ resource "aws_instance" "bastion" {
     network_interface_id = aws_network_interface.nic.id
   }
 
-  user_data = <<-USERDATA
-#!/bin/bash
-set -x  # Debug mode - log all commands
-exec > >(tee /var/log/user-data.log) 2>&1
-
-echo "$(date) - Starting user_data script for bastion"
-
-# Wait for cloud-init to create the user
-while [ ! -d /home/${var.ssh_user} ]; do
-  echo "Waiting for /home/${var.ssh_user} to be created..."
-  sleep 5
-done
-
-echo "$(date) - PREPARING client" >> /home/${var.ssh_user}/prepare_client.log
-
-# Configure non-interactive mode for apt (suppress "Scanning processes..." output)
-export DEBIAN_FRONTEND=noninteractive
-export NEEDRESTART_MODE=a
-
-# Disable needrestart interactive prompts (Ubuntu 22.04+)
-if [ -d /etc/needrestart/conf.d ]; then
-    cat > /etc/needrestart/conf.d/99-disable-interactive.conf << 'NEEDRESTART_EOF'
-\$nrconf{restart} = 'a';
-\$nrconf{kernelhints} = 0;
-NEEDRESTART_EOF
-fi
-
-apt-get -y update
-apt-get -y install vim iotop iputils-ping netcat dnsutils
-
-export TZ="UTC"
-apt-get install -y tzdata
-ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime
-dpkg-reconfigure --frontend noninteractive tzdata
-
-mkdir -p /home/${var.ssh_user}/install
-cd /home/${var.ssh_user}/install
-apt-get -y install build-essential autoconf automake libpcre3-dev libevent-dev pkg-config zlib1g-dev libssl-dev
-
-echo "$(date) - DOWNLOADING memtier from : ${var.memtier_package}" >> /home/${var.ssh_user}/prepare_client.log
-wget -O memtier.tar.gz "${var.memtier_package}" -P /home/${var.ssh_user}/install
-echo "$(date) - INSTALLING memtier" >> /home/${var.ssh_user}/prepare_client.log
-tar xfz /home/${var.ssh_user}/install/memtier.tar.gz -C /home/${var.ssh_user}/install
-mv memtier_benchmark-*/ memtier
-
-pushd memtier
-autoreconf -ivf
-./configure
-make
-sudo make install
-popd
-
-echo "$(date) - Memtier install done" >> /home/${var.ssh_user}/prepare_client.log
-
-echo "$(date) - DOWNLOADING redis-cli from : ${var.redis_stack_package}" >> /home/${var.ssh_user}/prepare_client.log
-wget -O redis-stack.tar.gz "${var.redis_stack_package}" -P /home/${var.ssh_user}/install
-echo "$(date) - INSTALLING redis-cli" >> /home/${var.ssh_user}/prepare_client.log
-tar xfz /home/${var.ssh_user}/install/redis-stack.tar.gz -C /home/${var.ssh_user}/install
-mv redis-stack-*/ redis-stack
-sudo mkdir -p /home/${var.ssh_user}/.local/bin
-ln -s /home/${var.ssh_user}/install/redis-stack/bin/redis-benchmark /home/${var.ssh_user}/.local/bin/redis-benchmark
-ln -s /home/${var.ssh_user}/install/redis-stack/bin/redis-cli /home/${var.ssh_user}/.local/bin/redis-cli
-
-sudo chown -R ${var.ssh_user}:${var.ssh_user} /home/${var.ssh_user}/install
-sudo chown -R ${var.ssh_user}:${var.ssh_user} /home/${var.ssh_user}/.local
-
-echo "$(date) - redis-cli install done" >> /home/${var.ssh_user}/prepare_client.log
-
-echo "$(date) - DOWNLOADING Redis Insight from : ${var.redis_insight_package}" >> /home/${var.ssh_user}/prepare_client.log
-wget "${var.redis_insight_package}" -P /home/${var.ssh_user}/install
-echo "$(date) - Starting Redis Insight" >> /home/${var.ssh_user}/prepare_client.log
-mv /home/${var.ssh_user}/install/redisinsight-* /home/${var.ssh_user}/install/redisinsight
-chmod +x /home/${var.ssh_user}/install/redisinsight
-sudo /home/${var.ssh_user}/install/redisinsight >> /home/${var.ssh_user}/prepare_client.log &
-
-echo "$(date) - Redis Insight install done" >> /home/${var.ssh_user}/prepare_client.log
-
-echo "$(date) - DOWNLOADING Prometheus from : ${var.promethus_package}" >> /home/${var.ssh_user}/prepare_client.log
-wget "${var.promethus_package}" -P /home/${var.ssh_user}/install
-tar xfz /home/${var.ssh_user}/install/prometheus-*.tar.gz -C /home/${var.ssh_user}/install
-mv prometheus-*/ prometheus
-
-sudo groupadd --system prometheus
-sudo useradd -s /sbin/nologin --system -g prometheus prometheus
-sudo mkdir /var/lib/prometheus
-
-for i in rules rules.d files_sd; do sudo mkdir -p /etc/prometheus/$i; done
-
-sudo mv /home/${var.ssh_user}/install/prometheus/prometheus /home/${var.ssh_user}/install/prometheus/promtool /usr/local/bin/
-sudo mv /home/${var.ssh_user}/install/prometheus/prometheus.yml /etc/prometheus/prometheus.yml
-sudo mv /home/${var.ssh_user}/install/prometheus/consoles/ /home/${var.ssh_user}/install/prometheus/console_libraries/ /etc/prometheus/
-
-echo "$(date) - OVERRIDING Prometheus configuration" >> /home/${var.ssh_user}/prepare_client.log
-
-cat > /etc/prometheus/prometheus.yml << 'PROMCONFIG'
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
-
-scrape_configs:
-  - job_name: "prometheus-redis"
-    scheme: https
-    tls_config:
-      insecure_skip_verify: true
-    scrape_interval: 5s
-    static_configs:
-      - targets: ['${var.cluster_dns}:8070']
-PROMCONFIG
-
-echo "$(date) - CREATING Prometheus Service" >> /home/${var.ssh_user}/prepare_client.log
-
-cat > /etc/systemd/system/prometheus.service << 'PROMSERVICE'
-[Unit]
-Description=Prometheus Service
-Wants=network-online.target
-After=network-online.target
-
-[Service]
-User=prometheus
-Group=prometheus
-ExecReload=/bin/kill -HUP $MAINPID
-ExecStart=/usr/local/bin/prometheus \
-  --config.file=/etc/prometheus/prometheus.yml \
-  --storage.tsdb.path=/var/lib/prometheus \
-  --web.console.templates=/etc/prometheus/consoles \
-  --web.console.libraries=/etc/prometheus/console_libraries \
-  --web.listen-address=0.0.0.0:9090 \
-  --web.external-url=
-
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-PROMSERVICE
-
-for i in rules rules.d files_sd; do sudo chown -R prometheus:prometheus /etc/prometheus/$i; done
-for i in rules rules.d files_sd; do sudo chmod -R 775 /etc/prometheus/$i; done
-sudo chown -R prometheus:prometheus /var/lib/prometheus/
-
-echo "$(date) - Prometheus install done" >> /home/${var.ssh_user}/prepare_client.log
-
-echo "$(date) - INSTALLING Grafana" >> /home/${var.ssh_user}/prepare_client.log
-sudo apt-get install -y apt-transport-https
-sudo apt-get install -y software-properties-common wget
-sudo mkdir -p /etc/apt/keyrings/
-wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
-echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
-sudo apt-get -y update
-sudo apt-get install -y grafana-enterprise
-
-echo "$(date) - Grafana install done" >> /home/${var.ssh_user}/prepare_client.log
-
-echo "$(date) - STARTING Prometheus Service" >> /home/${var.ssh_user}/prepare_client.log
-sudo systemctl daemon-reload
-sudo systemctl start prometheus
-sudo systemctl enable prometheus
-
-echo "$(date) - STARTING Grafana Service" >> /home/${var.ssh_user}/prepare_client.log
-sudo systemctl start grafana-server
-sudo systemctl enable grafana-server
-
-echo "$(date) - CHECKING Services Status" >> /home/${var.ssh_user}/prepare_client.log
-sudo systemctl status prometheus >> /home/${var.ssh_user}/prometheus_status.log
-sudo systemctl status grafana-server >> /home/${var.ssh_user}/grafana_status.log
-
-################
-# Install Docker
-echo "$(date) - Installing Docker" >> /home/${var.ssh_user}/prepare_client.log
-sudo apt update >> /home/${var.ssh_user}/prepare_client.log 2>&1
-sudo apt -y install apt-transport-https ca-certificates curl software-properties-common >> /home/${var.ssh_user}/prepare_client.log 2>&1
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update >> /home/${var.ssh_user}/prepare_client.log 2>&1
-sudo apt -y install docker-ce docker-ce-cli containerd.io >> /home/${var.ssh_user}/prepare_client.log 2>&1
-sudo groupadd docker || true
-sudo usermod -aG docker ${var.ssh_user}
-
-################
-# Link Grafana to Prometheus
-echo "$(date) - Link Grafana to Prometheus" >> /home/${var.ssh_user}/prepare_client.log
-cat > /etc/grafana/provisioning/datasources/prometheus.yaml << 'GRAFANADS'
-apiVersion: 1
-datasources:
-- name: Prometheus
-  type: prometheus
-  access: proxy
-  url: http://127.0.0.1:9090
-GRAFANADS
-
-################
-# Dashboards provisionning
-echo "$(date) - Dashboards provisionning" >> /home/${var.ssh_user}/prepare_client.log
-cat > /etc/grafana/provisioning/dashboards/dashboards.yaml << 'GRAFANADASH'
-apiVersion: 1
-providers:
-- name: 'default'
-  orgId: 1
-  folder: ''
-  type: file
-  options:
-    path: /var/lib/grafana/dashboards
-GRAFANADASH
-
-sudo mkdir -p /var/lib/grafana/dashboards
-sudo chown -R grafana:grafana /var/lib/grafana/dashboards
-sudo systemctl restart grafana-server
-
-################
-# Adding Dashboard: Redis cluster dashboards (18405)
-echo "$(date) - Adding Dashboard: redis cluster (18405)" >> /home/${var.ssh_user}/prepare_client.log
-sudo wget -O /var/lib/grafana/dashboards/18405-cluster-status.json https://grafana.com/api/dashboards/18405/revisions/1/download
-echo "Replacing \$${DS_PROMETHEUS} with Prometheus" >> /home/${var.ssh_user}/prepare_client.log
-sudo sed -i 's/\$${DS_PROMETHEUS}/Prometheus/g' /var/lib/grafana/dashboards/18405-cluster-status.json
-
-################
-# Adding Dashboard: Redis database dashboards (18408)
-echo "$(date) - Adding Dashboard: Redis Database Dashboards (18408)" >> /home/${var.ssh_user}/prepare_client.log
-sudo wget -O /var/lib/grafana/dashboards/18408-database-status-dashboard.json https://grafana.com/api/dashboards/18408/revisions/2/download
-echo "Replacing \$${DS_PROMETHEUS} with Prometheus" >> /home/${var.ssh_user}/prepare_client.log
-sudo sed -i 's/\$${DS_PROMETHEUS}/Prometheus/g' /var/lib/grafana/dashboards/18408-database-status-dashboard.json
-
-################
-# Adding Dashboard: Redis nodes metrics dashboard
-echo "$(date) - Adding Dashboard: Redis nodes metrics dashboard" >> /home/${var.ssh_user}/prepare_client.log
-sudo wget -O /var/lib/grafana/dashboards/redis-software-node-dashboard.json https://raw.githubusercontent.com/redis-field-engineering/redis-enterprise-grafana-dashboards/main/dashboards/software/basic/redis-software-node-dashboard.json
-echo "Replacing \$${DS_PROMETHEUS} with Prometheus" >> /home/${var.ssh_user}/prepare_client.log
-sudo sed -i 's/\$${DS_PROMETHEUS}/Prometheus/g' /var/lib/grafana/dashboards/redis-software-node-dashboard.json
-
-# Adding Dashboard: Redis shards metrics dashboard
-echo "$(date) - Adding Dashboard: Redis shards metrics dashboard" >> /home/${var.ssh_user}/prepare_client.log
-sudo wget -O /var/lib/grafana/dashboards/redis-software-shard-dashboard.json https://raw.githubusercontent.com/redis-field-engineering/redis-enterprise-grafana-dashboards/main/dashboards/software/basic/redis-software-shard-dashboard.json
-echo "Replacing \$${DS_PROMETHEUS} with Prometheus" >> /home/${var.ssh_user}/prepare_client.log
-sudo sed -i 's/\$${DS_PROMETHEUS}/Prometheus/g' /var/lib/grafana/dashboards/redis-software-shard-dashboard.json
-
-# Restart Grafana
-echo "$(date) - Restart Grafana Server" >> /home/${var.ssh_user}/prepare_client.log
-sudo systemctl restart grafana-server
-
-echo "$(date) - DONE creating client" >> /home/${var.ssh_user}/prepare_client.log
-USERDATA
-
   root_block_device {
     volume_size           = var.boot_disk_size
     volume_type           = var.boot_disk_type
     delete_on_termination = true
   }
 
+}
+
+############################################################
+# Provisioners using null_resource to run after EIP is created
+resource "null_resource" "bastion_provisioner" {
+  depends_on = [aws_eip.eip]
+
+  # Connection configuration for provisioners
+  connection {
+    type        = "ssh"
+    user        = var.ssh_user
+    private_key = file(replace(var.ssh_public_key, ".pub", ""))
+    host        = aws_eip.eip.public_ip
+    timeout     = "10m"
+  }
+
+  # Copy installation script to the instance
+  provisioner "file" {
+    content = templatefile("${local.scripts_path}/prepare_client.sh", {
+      ssh_user           = var.ssh_user
+      cluster_dns        = var.cluster_dns
+      memtier_package    = var.memtier_package
+      prometheus_package = var.prometheus_package
+      grafana_version    = var.grafana_version
+      java_version       = var.java_version
+    })
+    destination = "/home/${var.ssh_user}/prepare_client.sh"
+  }
+
+  # Execute installation script
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /home/${var.ssh_user}/prepare_client.sh",
+      "echo '=== Starting Bastion Preparation ==='",
+      "sudo /home/${var.ssh_user}/prepare_client.sh",
+      "echo '=== Bastion Preparation Complete ==='"
+    ]
+  }
 }

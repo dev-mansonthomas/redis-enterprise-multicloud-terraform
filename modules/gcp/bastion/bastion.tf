@@ -6,6 +6,12 @@ terraform {
   }
 }
 
+###########################################################
+# Local variables for scripts path
+locals {
+  scripts_path = "${path.module}/../../common/bastion"
+}
+
 resource "google_compute_address" "bastion-ip-address" {
   name  = "${var.name}-bastion-ip-address"
 }
@@ -15,8 +21,6 @@ resource "google_compute_instance" "bastion" {
   machine_type = var.machine_type
   zone         = var.availability_zone
   labels       = var.resource_tags
-
-  #can_ip_forward  = true
 
   boot_disk {
     initialize_params {
@@ -41,12 +45,35 @@ resource "google_compute_instance" "bastion" {
     sshKeys = "${var.ssh_user}:${file(var.ssh_public_key)}"
   }
 
-  metadata_startup_script = templatefile("${path.module}/scripts/prepare_client.sh", {
-      ssh_user              = var.ssh_user
-      memtier_package       = var.memtier_package
-      redis_stack_package   = var.redis_stack_package
-      promethus_package     = var.promethus_package
-      redis_insight_package = var.redis_insight_package
-      cluster_dns           = var.cluster_dns
-  })
+  # Connection configuration for provisioners
+  connection {
+    type        = "ssh"
+    user        = var.ssh_user
+    private_key = file(replace(var.ssh_public_key, ".pub", ""))
+    host        = google_compute_address.bastion-ip-address.address
+    timeout     = "10m"
+  }
+
+  # Copy installation script to the instance
+  provisioner "file" {
+    content = templatefile("${local.scripts_path}/prepare_client.sh", {
+      ssh_user           = var.ssh_user
+      cluster_dns        = var.cluster_dns
+      memtier_package    = var.memtier_package
+      prometheus_package = var.prometheus_package
+      grafana_version    = var.grafana_version
+      java_version       = var.java_version
+    })
+    destination = "/home/${var.ssh_user}/prepare_client.sh"
+  }
+
+  # Execute installation script
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /home/${var.ssh_user}/prepare_client.sh",
+      "echo '=== Starting Bastion Preparation ==='",
+      "sudo /home/${var.ssh_user}/prepare_client.sh",
+      "echo '=== Bastion Preparation Complete ==='"
+    ]
+  }
 }

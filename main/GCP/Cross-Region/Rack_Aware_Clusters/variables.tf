@@ -98,25 +98,32 @@ variable "rs_release" {
   type        = string
 }
 
-# Packages to install in the client machine
+# Bastion tools - versions configured in .env, URLs built by scripts/common.sh
 variable "memtier_package" {
-  description = "Memtier package URI"
-  default = "https://github.com/RedisLabs/memtier_benchmark/archive/refs/tags/1.4.0.tar.gz"
+  description = "Memtier benchmark package URL"
+  type        = string
 }
 
-variable "redis_stack_package" {
-  description = "Redis Stack package URI"
-  default = "https://redismodules.s3.amazonaws.com/redis-stack/redis-stack-server-6.2.6-v7.bionic.x86_64.tar.gz"
+variable "prometheus_package" {
+  description = "Prometheus package URL"
+  type        = string
 }
 
-variable "promethus_package" {
-  description = "Prometheus package URI"
-  default = "https://github.com/prometheus/prometheus/releases/download/v2.37.0/prometheus-2.37.0.linux-amd64.tar.gz"
+variable "grafana_version" {
+  description = "Grafana version to install"
+  type        = string
 }
 
-variable "redis_insight_package" {
-  description = "Redis Insight package URI"
-  default = "https://downloads.redisinsight.redislabs.com/1.1.0/redisinsight-linux64"
+variable "java_version" {
+  description = "Java version to install"
+  type        = string
+  default     = "21"
+}
+
+variable "redis_cli_version" {
+  description = "Redis CLI version to install"
+  type        = string
+  default     = "8.4.0"
 }
 
 variable "machine_type" {

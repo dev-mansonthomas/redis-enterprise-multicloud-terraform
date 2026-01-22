@@ -177,6 +177,20 @@ if [ -n "$FLASH_ENABLED" ]; then
     VAR_ARGS="$VAR_ARGS -var=\"flash_enabled=$FLASH_ENABLED\""
 fi
 
+# Build bastion tools URLs
+MEMTIER_VER="${MEMTIER_VERSION:-2.2.1}"
+MEMTIER_PACKAGE="https://github.com/RedisLabs/memtier_benchmark/archive/refs/tags/${MEMTIER_VER}.tar.gz"
+PROM_VER="${PROMETHEUS_VERSION:-3.9.1}"
+PROMETHEUS_PACKAGE="https://github.com/prometheus/prometheus/releases/download/v${PROM_VER}/prometheus-${PROM_VER}.linux-amd64.tar.gz"
+GRAFANA_VER="${GRAFANA_VERSION:-12.3.1}"
+JAVA_VER="${JAVA_VERSION:-21}"
+
+# Add bastion tools variables
+VAR_ARGS="$VAR_ARGS -var=\"memtier_package=$MEMTIER_PACKAGE\""
+VAR_ARGS="$VAR_ARGS -var=\"prometheus_package=$PROMETHEUS_PACKAGE\""
+VAR_ARGS="$VAR_ARGS -var=\"grafana_version=$GRAFANA_VER\""
+VAR_ARGS="$VAR_ARGS -var=\"java_version=$JAVA_VER\""
+
 # Add cloud-specific credentials
 case $CLOUD_PROVIDER in
     aws)

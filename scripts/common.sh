@@ -182,10 +182,47 @@ build_redis_url() {
 }
 
 # -----------------------------------------------------------------------------
+# Build bastion tools URLs from version variables
+# -----------------------------------------------------------------------------
+build_bastion_urls() {
+    # Memtier benchmark URL
+    local memtier_ver="${MEMTIER_VERSION:-2.2.1}"
+    MEMTIER_PACKAGE="https://github.com/RedisLabs/memtier_benchmark/archive/refs/tags/${memtier_ver}.tar.gz"
+    export MEMTIER_PACKAGE
+
+    # Redis CLI is installed via apt (redis-tools package) - no URL needed
+    # See: https://github.com/redis/redis-debian
+
+    # Prometheus URL
+    local prom_ver="${PROMETHEUS_VERSION:-3.9.1}"
+    PROMETHEUS_PACKAGE="https://github.com/prometheus/prometheus/releases/download/v${prom_ver}/prometheus-${prom_ver}.linux-amd64.tar.gz"
+    export PROMETHEUS_PACKAGE
+
+    # Grafana version (apt package)
+    GRAFANA_VERSION="${GRAFANA_VERSION:-12.3.1}"
+    export GRAFANA_VERSION
+
+    # Java version
+    JAVA_VERSION="${JAVA_VERSION:-21}"
+    export JAVA_VERSION
+
+    log_info "Bastion tools configured:"
+    log_info "  - Memtier: ${memtier_ver}"
+    log_info "  - Redis CLI: ${redis_cli_ver}"
+    log_info "  - RedisInsight: ${ri_ver}"
+    log_info "  - Prometheus: ${prom_ver}"
+    log_info "  - Grafana: ${GRAFANA_VERSION}"
+    log_info "  - Java: ${JAVA_VERSION}"
+}
+
+# -----------------------------------------------------------------------------
 # Build common Terraform variables
 # -----------------------------------------------------------------------------
 build_common_vars() {
     VAR_ARGS=""
+
+    # Build bastion URLs first
+    build_bastion_urls
 
     # Add common tags
     VAR_ARGS="$VAR_ARGS -var=\"owner=$OWNER\""
@@ -225,6 +262,12 @@ build_common_vars() {
     if [ -n "$REDIS_PWD" ]; then
         VAR_ARGS="$VAR_ARGS -var=\"rs_password=$REDIS_PWD\""
     fi
+
+    # Add bastion tool URLs (redis-cli installed via apt, no URL needed)
+    VAR_ARGS="$VAR_ARGS -var=\"memtier_package=$MEMTIER_PACKAGE\""
+    VAR_ARGS="$VAR_ARGS -var=\"prometheus_package=$PROMETHEUS_PACKAGE\""
+    VAR_ARGS="$VAR_ARGS -var=\"grafana_version=$GRAFANA_VERSION\""
+    VAR_ARGS="$VAR_ARGS -var=\"java_version=$JAVA_VERSION\""
 
     export VAR_ARGS
 }

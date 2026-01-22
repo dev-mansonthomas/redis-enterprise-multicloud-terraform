@@ -62,19 +62,20 @@ variable "memtier_package" {
   type        = string
 }
 
-variable "redis_stack_package" {
-  description = "Redis Stack package URI"
-  type        = string
-}
-
-variable "redis_insight_package" {
-  description = "Redis Insight package URI"
-  type        = string
-}
-
-variable "promethus_package" {
+variable "prometheus_package" {
   description = "Prometheus package URI"
   type        = string
+}
+
+variable "grafana_version" {
+  description = "Grafana version to install (e.g., 11.4.0)"
+  type        = string
+}
+
+variable "java_version" {
+  description = "Java version to install (e.g., 21)"
+  type        = string
+  default     = "21"
 }
 
 variable "cluster_dns" {
